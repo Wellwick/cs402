@@ -66,8 +66,10 @@ void ExplicitScheme::diffuse(double dt)
 
     double rx = dt/(dx*dx);
     double ry = dt/(dy*dy);
-
+    
+    #pragma omp parallel for
     for(int k=y_min; k <= y_max; k++) {
+	#pragma omp parallel for
         for(int j=x_min; j <= x_max; j++) {
 
             int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
