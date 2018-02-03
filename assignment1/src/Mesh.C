@@ -133,8 +133,11 @@ double Mesh::getTotalTemperature()
 
         int nx = n[0]+2;
 
-        for(int k=y_min; k <= y_max; k++) {
-            for(int j=x_min; j <= x_max; j++) {
+	int k;
+	int j;
+	#pragma for omp schedule(static) private(k,j) reduction(+:temperature) collapse(2)
+        for(k=y_min; k <= y_max; k++) {
+            for(j=x_min; j <= x_max; j++) {
 
                 int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
 

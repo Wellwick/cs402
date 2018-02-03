@@ -1,6 +1,7 @@
 #include "ExplicitScheme.h"
 
 #include <iostream>
+#include <omp.h>
 
 #define POLY2(i, j, imin, jmin, ni) (((i) - (imin)) + (((j)-(jmin)) * (ni)))
 
@@ -44,9 +45,14 @@ void ExplicitScheme::reset()
     int nx = mesh->getNx()[0]+2;
 
     
+    /* 
+     * Tried both collapse and simd
+     * These didn't work
+    */ 
+    
     int k;
     int j;
-    #pragma omp parallel for private(j,k) schedule(static)
+    #pragma omp simd parallel for private(j,k) schedule(static) collapse(2) shared(u0, u1)
     for(k = y_min-1; k <= y_max+1; k++) {
         for(j = x_min-1; j <=  x_max+1; j++) {
             int i = POLY2(j,k,x_min-1,y_min-1,nx);
@@ -71,20 +77,30 @@ void ExplicitScheme::diffuse(double dt)
     double rx = dt/(dx*dx);
     double ry = dt/(dy*dy);
     
+    //put this outside so we only calculate it once
+    double rXY = (1.0-2.0*rx-2.0*ry);
+    
+    
     
     int k;
     int j;
-    #pragma omp parallel for private(j,k) schedule(static)
+    #pragma omp simd parallel for private(j,k) schedule(static) collapse(2) shared(u0, u1, nx, rx, ry)
     for(k=y_min; k <= y_max; k++) {
         for(j=x_min; j <= x_max; j++) {
-
+	    
+	    // Can we calculate these once so we don't need to do them every time?
+	    // We can! But it's slower >:(
             int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
+	    //int n2 = n1-1;
             int n2 = POLY2(j-1,k,x_min-1,y_min-1,nx);
-            int n3 = POLY2(j+1,k,x_min-1,y_min-1,nx);
+            //int n3 = n1+1;
+	    int n3 = POLY2(j+1,k,x_min-1,y_min-1,nx);
+	    //int n4 = n1-nx;
             int n4 = POLY2(j,k-1,x_min-1,y_min-1,nx);
+	    //int n5 = n1+nx;
             int n5 = POLY2(j,k+1,x_min-1,y_min-1,nx);
 
-            u1[n1] = (1.0-2.0*rx-2.0*ry)*u0[n1] + rx*u0[n2] + rx*u0[n3]
+            u1[n1] = rXY*u0[n1] + rx*u0[n2] + rx*u0[n3]
                 + ry*u0[n4] + ry*u0[n5];
         }
     }

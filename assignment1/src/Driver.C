@@ -80,7 +80,7 @@ void Driver::run() {
 
     std::cout << std::endl;
     std::cout << "+++++++++++++++++++++" << std::endl;
-    std::cout << "   Run completete.   " << std::endl;
+    std::cout << "   Run complete.   " << std::endl;
     std::cout << "+++++++++++++++++++++" << std::endl;
     std::cout << "Total time taken: " << omp_get_wtime()-startTime << std::endl;
 }
