@@ -43,25 +43,16 @@ void ExplicitScheme::reset()
     int y_max = mesh->getMax()[1]; 
 
     int nx = mesh->getNx()[0]+2;
-
-    
-    /* 
-     * Tried both collapse and simd
-     * These didn't work
-    */ 
-    
-    int j;
     double startTime = omp_get_wtime();
-    #pragma omp simd parallel //private(j) shared(u0, u1)
+
     for(int k = y_min-1; k <= y_max+1; k++) {
-	#pragma omp for schedule(static)
-        for(j = x_min-1; j <=  x_max+1; j++) {
+        for(int j = x_min-1; j <=  x_max+1; j++) {
             int i = POLY2(j,k,x_min-1,y_min-1,nx);
             u0[i] = u1[i];
         }
     }
-    #pragma omp barrier
     std::cout << "Reset loop time taken: " << omp_get_wtime()-startTime << std::endl;
+
 }
 
 void ExplicitScheme::diffuse(double dt)
@@ -79,46 +70,23 @@ void ExplicitScheme::diffuse(double dt)
 
     double rx = dt/(dx*dx);
     double ry = dt/(dy*dy);
-    
-    //put this outside so we only calculate it once
-    double rXY = (1.0-2.0*rx-2.0*ry);
-    
-    /* Definitely no to SIMD, despite the fact this is working with multiple data, single instruction
-     * there is no speedup!
-     */
-    
-    //int k;
-    int j;
     double startTime = omp_get_wtime();
-    #pragma omp parallel //private(j) shared(u0, u1, nx, rx, ry)
-    for(int k=y_min; k <= y_max; k++) {
-	#pragma omp for schedule(static)
-	//#pragma omp simd parallel private(k) schedule(dynamic) shared(u0, u1, nx, rx, ry)
-        for(j=x_min; j <= x_max; j++) {
-	    
-	    // Can we calculate these once so we don't need to do them every time?
-	    // We can! But it's slower >:(
-            int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
-	    //int n2 = n1-1;
-            int n2 = POLY2(j-1,k,x_min-1,y_min-1,nx);
-            //int n3 = n1+1;
-	    int n3 = POLY2(j+1,k,x_min-1,y_min-1,nx);
-	    //int n4 = n1-nx;
-            int n4 = POLY2(j,k-1,x_min-1,y_min-1,nx);
-	    //int n5 = n1+nx;
-            int n5 = POLY2(j,k+1,x_min-1,y_min-1,nx);
-	    
-	    double v1 = rXY*u0[n1];
-	    double v2 = rx*u0[n2];
-	    double v3 = rx*u0[n3];
-	    double v4 = ry*u0[n4];
-	    double v5 = ry*u0[n5];
 
-            u1[n1] = v1 + v2 + v3 + v4 + v5;
+    for(int k=y_min; k <= y_max; k++) {
+        for(int j=x_min; j <= x_max; j++) {
+
+            int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
+            int n2 = POLY2(j-1,k,x_min-1,y_min-1,nx);
+            int n3 = POLY2(j+1,k,x_min-1,y_min-1,nx);
+            int n4 = POLY2(j,k-1,x_min-1,y_min-1,nx);
+            int n5 = POLY2(j,k+1,x_min-1,y_min-1,nx);
+
+            u1[n1] = (1.0-2.0*rx-2.0*ry)*u0[n1] + rx*u0[n2] + rx*u0[n3]
+                + ry*u0[n4] + ry*u0[n5];
         }
     }
-    #pragma omp barrier
     std::cout << "Diffuse loop time taken: " << omp_get_wtime()-startTime << std::endl;
+
 }
 
 void ExplicitScheme::reflectBoundaries(int boundary_id)
@@ -135,10 +103,7 @@ void ExplicitScheme::reflectBoundaries(int boundary_id)
         case 0: 
             /* top */
             {
-		
-		int j;
-		#pragma omp parallel for private(j) schedule(static)
-		for(j = x_min; j <= x_max; j++) {
+                for(int j = x_min; j <= x_max; j++) {
                     int n1 = POLY2(j, y_max, x_min-1, y_min-1, nx);
                     int n2 = POLY2(j, y_max+1, x_min-1, y_min-1, nx);
 
@@ -148,10 +113,7 @@ void ExplicitScheme::reflectBoundaries(int boundary_id)
         case 1:
             /* right */
             {
-		
-		int k;
-		#pragma omp parallel for private(k) schedule(static)
-		for(k = y_min; k <= y_max; k++) {
+                for(int k = y_min; k <= y_max; k++) {
                     int n1 = POLY2(x_max, k, x_min-1, y_min-1, nx);
                     int n2 = POLY2(x_max+1, k, x_min-1, y_min-1, nx);
 
@@ -161,9 +123,7 @@ void ExplicitScheme::reflectBoundaries(int boundary_id)
         case 2: 
             /* bottom */
             {
-		int j;
-		#pragma omp parallel for private(j) schedule(static)
-		for(j = x_min; j <= x_max; j++) {
+                for(int j = x_min; j <= x_max; j++) {
                     int n1 = POLY2(j, y_min, x_min-1, y_min-1, nx);
                     int n2 = POLY2(j, y_min-1, x_min-1, y_min-1, nx);
 
@@ -173,9 +133,7 @@ void ExplicitScheme::reflectBoundaries(int boundary_id)
         case 3: 
             /* left */
             {
-		int k;
-		#pragma omp parallel for private(k) schedule(static)
-		for(k = y_min; k <= y_max; k++) {
+                for(int k = y_min; k <= y_max; k++) {
                     int n1 = POLY2(x_min, k, x_min-1, y_min-1, nx);
                     int n2 = POLY2(x_min-1, k, x_min-1, y_min-1, nx);
 

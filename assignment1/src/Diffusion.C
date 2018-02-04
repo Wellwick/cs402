@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <omp.h>
 
 Diffusion::Diffusion(const InputFile* input, Mesh* m) :
     mesh(m) 
@@ -47,13 +46,11 @@ void Diffusion::init()
     int nx = x_max+2;
 
     if(!subregion.empty()) {
-	#pragma omp parallel
         for (int j = 0; j < y_max+2; j++) {
-	    #pragma omp for schedule(static)
             for (int i = 0; i < x_max+2; i++) {
                 if (celly[j] > subregion[1] && celly[j] <= subregion[3] &&
                         cellx[i] > subregion[0] && cellx[i] <= subregion[2]) {
-                    u0[i+j*nx] = 10.0; //never gonna be on the same value as nay other
+                    u0[i+j*nx] = 10.0;
                 } else {
                     u0[i+j*nx] = 0.0;
                 }
@@ -61,10 +58,8 @@ void Diffusion::init()
             }
         }
     } else {
-        #pragma omp parallel
-	for (int j = 0; j < y_max+2; j++) {
-	    #pragma omp for schedule(static)
-	    for (int i = 0; i < x_max+2; i++) {
+        for (int j = 0; j < y_max+2; j++) {
+            for (int i = 0; i < x_max+2; i++) {
                 u0[i+j*nx] = 0.0;
             }
         }
