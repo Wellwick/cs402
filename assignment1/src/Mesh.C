@@ -6,6 +6,9 @@
 
 #define POLY2(i, j, imin, jmin, ni) (((i) - (imin)) + ((j)-(jmin)) * (ni))
 
+static double temperatureTimer = 0.0;
+static double stepCounter = 0.0;
+
 Mesh::Mesh(const InputFile* input):
     input(input)
 {
@@ -133,22 +136,29 @@ double Mesh::getTotalTemperature()
         int y_max = max[1]; 
 
         int nx = n[0]+2;
-
-	int k;
-	int j;
-	#pragma omp parallel private(k,j) reduction(+:temperature)
-        for(k=y_min; k <= y_max; k++) {
+	
+	double startTime = omp_get_wtime();
+	#pragma omp parallel reduction(+:temperature)
+        for(int k=y_min; k <= y_max; k++) {
 	    #pragma omp for schedule(static)
-	    for(j=x_min; j <= x_max; j++) {
+	    for(int j=x_min; j <= x_max; j++) {
 
                 int n1 = POLY2(j,k,x_min-1,y_min-1,nx);
 
                 temperature += u0[n1];
             }
         }
+	std::cout << "+\tTemperature loop time taken: " << omp_get_wtime()-startTime << std::endl;
+	temperatureTimer += omp_get_wtime()-startTime;
+	stepCounter++;
 
         return temperature;
     } else {
         return 0.0;
     }
+}
+
+void Mesh::getAverage() 
+{
+    std::cout << "\t\tTemperature loop average time taken: " << temperatureTimer/stepCounter << std::endl;
 }

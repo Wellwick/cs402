@@ -1,16 +1,21 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <omp.h>
 
 #include "InputFile.h"
 #include "Driver.h"
 
 int main(int argc, char *argv[])
 {
+    
     if (argc != 2) {
         std::cerr << "Usage: deqn <filename>" << std::endl;
         exit(1);
     }
+    //need to specify the number of threads to run on as a debugging thing
+    omp_set_num_threads(4);
+    std::cout << "Number of threads: " << omp_get_num_threads() << std::endl;
 
     const char* filename = argv[1];
     InputFile input(filename);

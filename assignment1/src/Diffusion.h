@@ -21,5 +21,6 @@ class Diffusion {
 
         void init();
         void doCycle(const double dt);
+	void getAverages();
 };
 #endif

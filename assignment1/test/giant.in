@@ -8,5 +8,4 @@ initial_dt 0.04
 end_time 0.80
 scheme explicit
 vis_frequency -1
-summary_frequency -1
 subregion 30.0 30.0 60.0 60.0

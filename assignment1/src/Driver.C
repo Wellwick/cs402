@@ -84,5 +84,11 @@ void Driver::run() {
     std::cout << "+++++++++++++++++++++" << std::endl;
     std::cout << "   Run complete.   " << std::endl;
     std::cout << "+++++++++++++++++++++" << std::endl;
-    std::cout << "Total time taken: " << omp_get_wtime()-startTime << std::endl;
+    
+    double runningTime = omp_get_wtime()-startTime;
+    
+    std::cout << "\t\tTotal time taken: " << runningTime << std::endl;
+    std::cout << "\t\tAverage time taken: " << runningTime/step << std::endl;
+    diffusion->getAverages();
+    mesh->getAverage();
 }

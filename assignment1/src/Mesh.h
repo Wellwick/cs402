@@ -53,5 +53,6 @@ class Mesh {
         int* getNeighbours();
 
         double getTotalTemperature();
+	void getAverage();
 };
 #endif

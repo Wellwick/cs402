@@ -10,5 +10,6 @@ class Scheme {
         virtual void doAdvance(const double dt) = 0;
 
         virtual void init() = 0;
+	virtual void getAverages() = 0;
 };
 #endif

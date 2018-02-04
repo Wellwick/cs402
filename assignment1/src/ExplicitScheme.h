@@ -16,7 +16,7 @@ class ExplicitScheme : public Scheme {
         ExplicitScheme(const InputFile* input, Mesh* m);
 
         void doAdvance(const double dt);
-
+	void getAverages();
         void init();
 };
 #endif

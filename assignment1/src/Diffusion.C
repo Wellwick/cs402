@@ -77,3 +77,8 @@ void Diffusion::doCycle(const double dt)
 {
     scheme->doAdvance(dt);
 }
+
+void Diffusion::getAverages() 
+{
+    scheme->getAverages();
+}

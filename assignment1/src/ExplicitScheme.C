@@ -5,6 +5,11 @@
 
 #define POLY2(i, j, imin, jmin, ni) (((i) - (imin)) + (((j)-(jmin)) * (ni)))
 
+static double diffuseTimer = 0.0;
+static double resetTimer = 0.0;
+static double boundaryTimer = 0.0;
+static double stepCounter = 0.0;
+
 ExplicitScheme::ExplicitScheme(const InputFile* input, Mesh* m) :
     mesh(m)
 {
@@ -14,6 +19,7 @@ ExplicitScheme::ExplicitScheme(const InputFile* input, Mesh* m) :
 
 void ExplicitScheme::doAdvance(const double dt)
 {
+    stepCounter++;
     diffuse(dt);
 
     reset();
@@ -23,9 +29,13 @@ void ExplicitScheme::doAdvance(const double dt)
 
 void ExplicitScheme::updateBoundaries()
 {
+    double startTime = omp_get_wtime();
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < 4; i++) {
         reflectBoundaries(i);
     }
+    std::cout << "+\tBoundary loops time taken: " << omp_get_wtime()-startTime << std::endl;
+    boundaryTimer += omp_get_wtime()-startTime;
 }
 
 void ExplicitScheme::init()
@@ -63,7 +73,8 @@ void ExplicitScheme::reset()
         }
     }
     #pragma omp barrier
-    std::cout << "Reset loop time taken: " << omp_get_wtime()-startTime << std::endl;
+    std::cout << "+\tReset loop time taken: " << omp_get_wtime()-startTime << std::endl;
+    resetTimer += omp_get_wtime()-startTime;
 }
 
 void ExplicitScheme::diffuse(double dt)
@@ -122,7 +133,8 @@ void ExplicitScheme::diffuse(double dt)
         }
     }
     #pragma omp barrier
-    std::cout << "Diffuse loop time taken: " << omp_get_wtime()-startTime << std::endl;
+    std::cout << "+\tDiffuse loop time taken: " << omp_get_wtime()-startTime << std::endl;
+    diffuseTimer += omp_get_wtime()-startTime;
 }
 
 void ExplicitScheme::reflectBoundaries(int boundary_id)
@@ -188,4 +200,11 @@ void ExplicitScheme::reflectBoundaries(int boundary_id)
             } break;
         default: std::cerr << "Error in reflectBoundaries(): unknown boundary id (" << boundary_id << ")" << std::endl;
     }
+}
+
+void ExplicitScheme::getAverages()
+{
+    std::cout << "\t\tDiffuse loop average time taken: " << diffuseTimer / stepCounter << std::endl;
+    std::cout << "\t\tReset loop average time taken: " << resetTimer / stepCounter << std::endl;
+    std::cout << "\t\tBoundary loop average time taken: " << boundaryTimer / (stepCounter+1) << std::endl;
 }
