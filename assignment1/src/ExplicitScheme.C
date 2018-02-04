@@ -50,11 +50,13 @@ void ExplicitScheme::reset()
      * These didn't work
     */ 
     
+    int chunk = (x_max-x_min+1)/omp_get_num_procs();
+    //despite this being what static schedule should use, using this produces speedup sometimes
     int j;
     double startTime = omp_get_wtime();
     #pragma omp simd parallel private(j) shared(u0, u1, x_min, y_min, x_max, y_max, nx)
     for(int k = y_min-1; k <= y_max+1; k++) {
-	#pragma omp for schedule(static)
+	#pragma omp for schedule(static, chunk)
         for(j = x_min-1; j <=  x_max+1; j++) {
             int i = POLY2(j,k,x_min-1,y_min-1,nx);
             u0[i] = u1[i];
@@ -88,11 +90,13 @@ void ExplicitScheme::diffuse(double dt)
      */
     
     //int k;
+    int chunk = (x_max-x_min+1)/omp_get_num_procs();
+    //despite this being what static schedule should use, using this produces speedup sometimes
     int j;
     double startTime = omp_get_wtime();
-    #pragma omp parallel //private(j) shared(u0, u1, nx, rx, ry)
+    #pragma omp parallel private(j) shared(u0, u1, nx, rx, ry)
     for(int k=y_min; k <= y_max; k++) {
-	#pragma omp for schedule(static)
+	#pragma omp for schedule(static, chunk)
 	//#pragma omp simd parallel private(k) schedule(dynamic) shared(u0, u1, nx, rx, ry)
         for(j=x_min; j <= x_max; j++) {
 	    

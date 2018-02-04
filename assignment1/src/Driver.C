@@ -29,6 +29,7 @@
     std::cout << "- end_time: " << t_end << std::endl;
     std::cout << "- vis_frequency: " << vis_frequency << std::endl;
     std::cout << "- summary_frequency: " << summary_frequency << std::endl;
+    std::cout << "- processor count: " << omp_get_max_threads() << std::endl;
 #endif
     std::cout << "+++++++++++++++++++++" << std::endl;
     std::cout << std::endl;
@@ -59,12 +60,13 @@ void Driver::run() {
     **	Could seperate the loop out, making a seperate diffusion for each iteration where a single cycle is performed
     **	but this could ruin the iterative nature of the execution.
     */
+    //#pragma omp parallel for
     for(t_current = t_start; t_current < t_end; t_current += dt) {
         step = t_current/dt + 1;
 
         std::cout << "+ step: " << step << ", dt:   " << dt << std::endl;
-
-        diffusion->doCycle(dt);
+	diffusion->doCycle(dt);
+	
 
         if(step % vis_frequency == 0 && vis_frequency != -1)
             writer->write(step, t_current);
