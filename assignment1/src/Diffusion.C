@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <omp.h>
 
 Diffusion::Diffusion(const InputFile* input, Mesh* m) :
     mesh(m) 
@@ -60,9 +61,10 @@ void Diffusion::init()
             }
         }
     } else {
-        #pragma omp parallel for schedule(static) collapse(2)
+        #pragma omp parallel
 	for (int j = 0; j < y_max+2; j++) {
-            for (int i = 0; i < x_max+2; i++) {
+	    #pragma omp for schedule(static)
+	    for (int i = 0; i < x_max+2; i++) {
                 u0[i+j*nx] = 0.0;
             }
         }
