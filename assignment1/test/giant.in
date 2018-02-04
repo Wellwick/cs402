@@ -1,0 +1,12 @@
+nx 10000
+ny 10000
+xmin 0.0
+ymin 0.0
+xmax 1000000.0
+ymax 1000000.0
+initial_dt 1
+end_time 100
+scheme explicit
+vis_frequency -1
+summary_frequency -1
+subregion 30.0 30.0 60.0 60.0
