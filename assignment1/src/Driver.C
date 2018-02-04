@@ -55,6 +55,10 @@ void Driver::run() {
     double t_current;
     double startTime = omp_get_wtime();
 
+    /*	Can't parallelise this loop since there is a depenency between each iteration, with a call to the diffusion
+    **	Could seperate the loop out, making a seperate diffusion for each iteration where a single cycle is performed
+    **	but this could ruin the iterative nature of the execution.
+    */
     for(t_current = t_start; t_current < t_end; t_current += dt) {
         step = t_current/dt + 1;
 
@@ -76,7 +80,7 @@ void Driver::run() {
 
     std::cout << std::endl;
     std::cout << "+++++++++++++++++++++" << std::endl;
-    std::cout << "   Run completete.   " << std::endl;
+    std::cout << "   Run complete.   " << std::endl;
     std::cout << "+++++++++++++++++++++" << std::endl;
     std::cout << "Total time taken: " << omp_get_wtime()-startTime << std::endl;
 }
