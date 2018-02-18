@@ -1,0 +1,24 @@
+1 Thread
+		Average time taken: 5.25567
+		Diffuse loop average time taken: 2.07619
+		Reset loop average time taken: 1.41138
+		Boundary loop average time taken: 0.000897736
+		Temperature loop average time taken: 1.7672
+2 Threads
+		Average time taken: 3.65877
+		Diffuse loop average time taken: 1.35577
+		Reset loop average time taken: 1.39024
+		Boundary loop average time taken: 0.000508471
+		Temperature loop average time taken: 0.912249
+3 Threads
+		Average time taken: 3.55921
+		Diffuse loop average time taken: 1.54009
+		Reset loop average time taken: 1.39338
+		Boundary loop average time taken: 0.000559599
+		Temperature loop average time taken: 0.62514
+4 Threads
+		Average time taken: 3.29778
+		Diffuse loop average time taken: 1.40028
+		Reset loop average time taken: 1.3911
+		Boundary loop average time taken: 0.000541533
+		Temperature loop average time taken: 0.505844

@@ -138,9 +138,9 @@ double Mesh::getTotalTemperature()
         int nx = n[0]+2;
 	
 	double startTime = omp_get_wtime();
-	#pragma omp parallel reduction(+:temperature)
+	#pragma omp parallel for schedule(static) reduction(+:temperature)
         for(int k=y_min; k <= y_max; k++) {
-	    #pragma omp for schedule(static)
+	    //#pragma omp for schedule(static)
 	    for(int j=x_min; j <= x_max; j++) {
 
                 int n1 = POLY2(j,k,x_min-1,y_min-1,nx);

@@ -47,9 +47,9 @@ void Diffusion::init()
     int nx = x_max+2;
 
     if(!subregion.empty()) {
-	#pragma omp parallel
+	#pragma omp parallel for schedule(static)
         for (int j = 0; j < y_max+2; j++) {
-	    #pragma omp for schedule(static)
+	    //#pragma omp for schedule(static)
             for (int i = 0; i < x_max+2; i++) {
                 if (celly[j] > subregion[1] && celly[j] <= subregion[3] &&
                         cellx[i] > subregion[0] && cellx[i] <= subregion[2]) {
@@ -61,9 +61,9 @@ void Diffusion::init()
             }
         }
     } else {
-        #pragma omp parallel
+        #pragma omp parallel for schedule(static)
 	for (int j = 0; j < y_max+2; j++) {
-	    #pragma omp for schedule(static)
+	    //#pragma omp for schedule(static)
 	    for (int i = 0; i < x_max+2; i++) {
                 u0[i+j*nx] = 0.0;
             }
