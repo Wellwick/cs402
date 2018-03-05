@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,6 +81,11 @@ int main(int argc, char *argv[])
     progname = argv[0];
     infile = strdup("karman.bin");
     outfile = strdup("karman.bin");
+	
+	MPI_Status stat; 
+
+    /* all MPI programs start with MPI_Init */
+    MPI_Init(&argc,&argv);
 
     int optc;
     while ((optc = getopt_long(argc, argv, GETOPTS, long_opts, NULL)) != -1) {
@@ -211,6 +217,9 @@ int main(int argc, char *argv[])
     free_matrix(p);
     free_matrix(rhs);
     free_matrix(flag);
+	
+    /* MPI Programs end with MPI Finalize; this is a weak synchronization point */
+    MPI_Finalize(); 
 
     return 0;
 }

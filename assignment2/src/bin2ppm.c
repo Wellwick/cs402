@@ -149,7 +149,8 @@ int main(int argc, char **argv)
 
     calc_psi_zeta(u, v, psi, zeta, flag, imax, jmax, delx, dely);
     fprintf(fout, "P6 %d %d 255\n", imax, jmax);
-
+	
+	// TODO parallelise this loop
     for (j = 1; j < jmax+1 ; j++) {
         for (i = 1; i < imax+1 ; i++) {
             int r, g, b;
