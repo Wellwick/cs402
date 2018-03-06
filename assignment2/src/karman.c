@@ -236,6 +236,8 @@ int main(int argc, char *argv[])
 			apply_boundary_conditions(uTemp, vTemp, flagTemp, imax, jmax, ui, vi);
 		}
 		
+		printf("Root node has completed read. Starting handshake to %d nodes\n", size-1);
+		
 		// Now that these values have been set, we need to split them up for the
 		// different nodes
 		int node;
@@ -244,6 +246,7 @@ int main(int argc, char *argv[])
 		for (node = 1; node < size; node++) {
 			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
 		}
+		printf("Root node has sent confirmation to all nodes\n");
 		// Now get receives
 		int failure = 0;
 		for (node = 1; node < size; node++) {
@@ -253,6 +256,7 @@ int main(int argc, char *argv[])
 		// If we have reached end, with no failures, complete the handshake and get on with things!
 		if (failure > 0) {
 			success[0] = failure;
+			printf("%d nodes have been unable to allocate resources\n", failure);
 		}
 		
 		for (node = 1; node < size; node++) {
@@ -265,12 +269,13 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
+		printf("Root node has finished the handshake with all nodes\n");
+		
 		
 		for (node = 1; node<size; node++) {
-			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
 			// now need to construct the array specifically for the ith MPI node
 			for (i = 0; i <= imaxNode+1; i++) {
-				int pos = imaxPrimary + ((node-1)*imaxNode);
+				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
 				for (j = 0; j <= jmax+1; j++) {
 					uNode[i][j] 	= uTemp[pos][j];
 					vNode[i][j] 	= vTemp[pos][j];
@@ -280,7 +285,9 @@ int main(int argc, char *argv[])
 			}
 			// Send the four necessary arrays
 			int arraySize = (imaxNode+2)*(jmax+2);
+			printf("Root is now sending u array to node %d\n",node);
 			MPI_Send(uNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+			printf("Root has sent u array to node %d\n",node);
 			MPI_Send(vNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 			MPI_Send(pNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 			MPI_Send(flagNode, arraySize, MPI_CHAR, node, tag, MPI_COMM_WORLD);
@@ -292,7 +299,7 @@ int main(int argc, char *argv[])
 				u[i][j] 	= uTemp[i][j];
 				v[i][j] 	= vTemp[i][j];
 				p[i][j] 	= pTemp[i][j];
-				flag[i][j] 	= flagTemp[i][j]
+				flag[i][j] 	= flagTemp[i][j];
 			}
 		}
 		
@@ -321,6 +328,8 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
+		printf("Node %d has started the handshake with the root node\n", rank);
+		
 		if (!u || !v || !f || !g || !p || !rhs || !flag) {
 			// Let the other nodes know that there we were not successful at allocating memory
 			fprintf(stderr, "Couldn't allocate memory for matrices on node %d.\n", rank);
@@ -338,10 +347,19 @@ int main(int argc, char *argv[])
 			}
 		}
 		
+		printf("Node %d is still active having finished the handshake\n", rank);
 		
-		
-		
+		// Reaching this point means the handshake has been completed
+		int arraySize = (imaxNode+2)*(jmax+2);
+		printf("Node %d is now receiving u array\n", rank);
+		MPI_Recv(u, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		printf("Node %d is still active having received u array\n", rank);
+		MPI_Recv(v, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(p, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(flag, arraySize, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
 	}
+	
+	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
     /* Main loop */
     for (t = 0.0; t < t_end; t += del_t, iters++) {
