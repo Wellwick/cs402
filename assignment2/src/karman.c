@@ -156,25 +156,13 @@ int main(int argc, char *argv[])
 			a. But can multiple MPI processes read the same file simultaneously. 
 	*/
 	
-	float **uNode, **vNode, **pNode, **rhsNode, **fNode, **gNode;
-	char  **flagNode;
-	
 	/* This method uses vertical division between the seperate nodes */
 	int imaxNode = (imax/size);
-	uNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-	vNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-	fNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-	gNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-	pNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-	rhsNode  = alloc_floatmatrix(imaxNode+2, jmax+2);
-	flagNode = alloc_charmatrix(imaxNode+2, jmax+2);
 	
 	// Due to a rounding down error with the int values, the first node
 	// may need to make up the extra data space
 	
 	int imaxPrimary = imax -(imaxNode*(size-1));
-	float **uTemp, **vTemp, **pTemp, **rhsTemp, **fTemp, **gTemp;
-	char  **flagTemp;
 	
 	if (rank==0) {
 		/* Allocate arrays */
@@ -187,17 +175,26 @@ int main(int argc, char *argv[])
 		flag = alloc_charmatrix(imaxPrimary+2, jmax+2);
 		
 		// Needed for moving the actual values to each of the nodes
+		float **uTemp, **vTemp, **pTemp;
+		char  **flagTemp;
+		
 		uTemp    = alloc_floatmatrix(imax+2, jmax+2);
 		vTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		fTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		gTemp    = alloc_floatmatrix(imax+2, jmax+2);
 		pTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		rhsTemp  = alloc_floatmatrix(imax+2, jmax+2); 
 		flagTemp = alloc_charmatrix(imax+2, jmax+2);
 		
+		// Used for sending to each node only their values
+		float **uNode, **vNode, **pNode;
+		char  **flagNode;
+		
+		uNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		vNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		pNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		flagNode = alloc_charmatrix(imaxNode+2, jmax+2);
+		
 		if (!u || !v || !f || !g || !p || !rhs || !flag 
-		|| !uNode || !vNode || !fNode || !gNode || !pNode || !rhsNode || !flagNode
-		|| !uTemp || !vTemp || !fTemp || !gTemp || !pTemp || !rhsTemp || !flagTemp) {
+		|| !uNode || !vNode || !pNode || !flagNode
+		|| !uTemp || !vTemp || !pTemp || !flagTemp) {
 			// Let the other nodes know that there we were not successful at allocating memory
 			fprintf(stderr, "Couldn't allocate memory for matrices.\n");
 			int fail[1] = {1};
@@ -240,17 +237,48 @@ int main(int argc, char *argv[])
 		// Now that these values have been set, we need to split them up for the
 		// different nodes
 		int node;
+		int success[1] = {1};
 		for (node = 1; node<size; node++) {
-			int success[1] = {1};
 			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
 			// now need to construct the array specifically for the ith MPI node
-			for (i = 0; i <= (imax/size)+1; i++) {
-				int pos = 
+			for (i = 0; i <= imaxNode+1; i++) {
+				int pos = imaxPrimary + ((node-1)*imaxNode);
 				for (j = 0; j <= jmax+1; j++) {
-					uNode[i][j] = u[i]
+					uNode[i][j] 	= uTemp[pos][j];
+					vNode[i][j] 	= vTemp[pos][j];
+					pNode[i][j] 	= pTemp[pos][j];
+					flagNode[i][j] 	= flagTemp[pos][j];
 				}
 			}
+			// Send the four necessary arrays
+			int arraySize = (imaxNode+2)*(jmax+2);
+			MPI_Send(uNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+			MPI_Send(vNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+			MPI_Send(pNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+			MPI_Send(flagNode, arraySize, MPI_CHAR, node, tag, MPI_COMM_WORLD);
 		}
+		
+		// Finally, fill in our own array
+		for (i = 0; i <= imaxPrimary+1; i++) {
+			for (j = 0; j <= jmax+1; j++) {
+				u[i][j] 	= uTemp[i][j];
+				v[i][j] 	= vTemp[i][j];
+				p[i][j] 	= pTemp[i][j];
+				flag[i][j] 	= flagTemp[i][j]
+			}
+		}
+		
+	} else { // What to do if you are not the root node
+		/* Allocate arrays */
+		u    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		v    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		f    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		g    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		p    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		rhs  = alloc_floatmatrix(imaxNode+2, jmax+2); 
+		flag = alloc_charmatrix(imaxNode+2, jmax+2);
+		
+		
 	}
 
     /* Main loop */
