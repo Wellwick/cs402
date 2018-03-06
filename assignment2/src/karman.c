@@ -162,7 +162,8 @@ int main(int argc, char *argv[])
 	// Due to a rounding down error with the int values, the first node
 	// may need to make up the extra data space
 	
-	int imaxPrimary = imax -(imaxNode*(size-1));
+	// look at that, this stays at imax for 1 node
+	int imaxPrimary = imax -(imaxNode*(size-1)); 
 			
 	// Needed for moving the actual values to each of the nodes
 	// Keeping this available so they can be written into at the end of the process
@@ -290,7 +291,7 @@ int main(int argc, char *argv[])
 				MPI_Send(vNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 				MPI_Send(pNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 				MPI_Send(flagNode[i], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD);
-				printf("Root has sent round %d of %d\n", i+1, imaxNode+2);
+				// printf("Root has sent round %d of %d\n", i+1, imaxNode+2); // Debug
 			}
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
@@ -358,7 +359,8 @@ int main(int argc, char *argv[])
 			MPI_Recv(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
 			MPI_Recv(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
 			MPI_Recv(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
-			printf("Node %d successfully received round %d of %d array values\n",rank, i+1, imaxNode+2);
+			// Debug line
+			// printf("Node %d successfully received round %d of %d array values\n",rank, i+1, imaxNode+2);
 		}
 		
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -366,6 +368,8 @@ int main(int argc, char *argv[])
 	
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
+	// Most of the MPI handling for this gets dealt with in simulation
+	
     /* Main loop */
     for (t = 0.0; t < t_end; t += del_t, iters++) {
         set_timestep_interval(&del_t, imax, jmax, delx, dely, u, v, Re, tau);
@@ -393,6 +397,10 @@ int main(int argc, char *argv[])
 
         apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
     } /* End of main loop */
+  
+	// Do a (maybe unnecessary) check so every node is at the same point
+	MPI_Barrier(MPI_COMM_WORLD);
+	
   
     if (outfile != NULL && strcmp(outfile, "") != 0 && proc == 0) {
         write_bin(u, v, p, flag, imax, jmax, xlength, ylength, outfile);
