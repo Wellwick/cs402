@@ -158,6 +158,10 @@ int main(int argc, char *argv[])
 	
 	/* This method uses vertical division between the seperate nodes */
 	int imaxNode = (imax/size);
+		
+	// Used for sending/receiving to each node their values in 1D arrays
+	float **uNode, **vNode, **pNode;
+	char  **flagNode;
 	
 	// Due to a rounding down error with the int values, the first node
 	// may need to make up the extra data space
@@ -185,14 +189,10 @@ int main(int argc, char *argv[])
 		pTemp    = alloc_floatmatrix(imax+2, jmax+2);
 		flagTemp = alloc_charmatrix(imax+2, jmax+2);
 		
-		// Used for sending to each node only their values
-		float **uNode, **vNode, **pNode;
-		char  **flagNode;
-		
-		uNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-		vNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-		pNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
-		flagNode = alloc_charmatrix(imaxNode+2, jmax+2);
+		uNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		vNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		pNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		flagNode = (char**) malloc((imaxNode+2)*(jmax+2)*sizeof(char));
 		
 		if (!u || !v || !f || !g || !p || !rhs || !flag 
 		|| !uNode || !vNode || !pNode || !flagNode
@@ -277,10 +277,10 @@ int main(int argc, char *argv[])
 			for (i = 0; i <= imaxNode+1; i++) {
 				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
 				for (j = 0; j <= jmax+1; j++) {
-					uNode[i][j] 	= uTemp[pos][j];
-					vNode[i][j] 	= vTemp[pos][j];
-					pNode[i][j] 	= pTemp[pos][j];
-					flagNode[i][j] 	= flagTemp[pos][j];
+					uNode[i+(j*(jmax+2))] 		= &uTemp[pos][j];
+					vNode[i+(j*(jmax+2))] 		= &vTemp[pos][j];
+					pNode[i+(j*(jmax+2))] 		= &pTemp[pos][j];
+					flagNode[i+(j*(jmax+2))]	= &flagTemp[pos][j];
 				}
 			}
 			// Send the four necessary arrays
@@ -303,10 +303,10 @@ int main(int argc, char *argv[])
 			}
 		}
 		
-		free_matrix(uNode);
-		free_matrix(vNode);
-		free_matrix(pNode);
-		free_matrix(flagNode);
+		free(uNode);
+		free(vNode);
+		free(pNode);
+		free(flagNode);
 		
 	} else { // What to do if you are not the root node
 		/* Allocate arrays */
@@ -317,6 +317,11 @@ int main(int argc, char *argv[])
 		p    = alloc_floatmatrix(imaxNode+2, jmax+2);
 		rhs  = alloc_floatmatrix(imaxNode+2, jmax+2); 
 		flag = alloc_charmatrix(imaxNode+2, jmax+2);
+		
+		uNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		vNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		pNode    = (float**) malloc((imaxNode+2)*(jmax+2)*sizeof(float));
+		flagNode = (char**) malloc((imaxNode+2)*(jmax+2)*sizeof(char));
 		
 		int success[1] = {0}; // 0 Means things are okay!
 		
@@ -330,7 +335,8 @@ int main(int argc, char *argv[])
 		
 		printf("Node %d has started the handshake with the root node\n", rank);
 		
-		if (!u || !v || !f || !g || !p || !rhs || !flag) {
+		if (!u || !v || !f || !g || !p || !rhs || !flag
+		 || !uNode || !vNode || !pNode || !flagNode) {
 			// Let the other nodes know that there we were not successful at allocating memory
 			fprintf(stderr, "Couldn't allocate memory for matrices on node %d.\n", rank);
 			success[0] = 1;
@@ -352,11 +358,22 @@ int main(int argc, char *argv[])
 		// Reaching this point means the handshake has been completed
 		int arraySize = (imaxNode+2)*(jmax+2);
 		printf("Node %d is now receiving u array\n", rank);
-		MPI_Recv(u, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(uNode, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
 		printf("Node %d is still active having received u array\n", rank);
-		MPI_Recv(v, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		MPI_Recv(p, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		MPI_Recv(flag, arraySize, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(vNode, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(pNode, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		MPI_Recv(flagNode, arraySize, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
+		
+		// Can restore these to the proper arrays while we are waiting 
+		// for root to finish communicating with other nodes
+		for (i = 0; i <= imaxNode+1; i++) {
+			for (j=0; j <= jmax+1; j++) {
+				u[i][j] 	= *uNode[i+(j*(jmax+2))];
+				v[i][j] 	= *vNode[i+(j*(jmax+2))];
+				p[i][j] 	= *pNode[i+(j*(jmax+2))];
+				flag[i][j]	= *flagNode[i+(j*(jmax+2))];
+			}
+		}
 	}
 	
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);

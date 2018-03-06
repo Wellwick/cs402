@@ -1,0 +1,5 @@
+
+karman:18426 terminated with signal 11 at PC=402119 SP=7fffd915e110.  Backtrace:
+/tinisgpfs/home/dcs/csupfd/cs402/assignment2/./karman[0x402119]
+/lib64/libc.so.6(__libc_start_main+0xfd)[0x3993e1ed5d]
+/tinisgpfs/home/dcs/csupfd/cs402/assignment2/./karman[0x402305]
