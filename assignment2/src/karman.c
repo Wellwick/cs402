@@ -284,13 +284,15 @@ int main(int argc, char *argv[])
 				}
 			}
 			// Send the four necessary arrays
-			int arraySize = (imaxNode+2)*(jmax+2);
-			printf("Root is now sending u array to node %d\n",node);
-			MPI_Send(uNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
-			printf("Root has sent u array to node %d\n",node);
-			MPI_Send(vNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
-			MPI_Send(pNode, arraySize, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
-			MPI_Send(flagNode, arraySize, MPI_CHAR, node, tag, MPI_COMM_WORLD);
+			printf("Root is now sending arrays to node %d\n",node);
+			for (i=0; i <= imaxNode+1; i++) {
+				MPI_Send(uNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(vNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(pNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(flagNode[i], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD);
+				printf("Root has sent round %d of %d\n", i+1, imaxNode+2);
+				MPI_Barrier(MPI_COMM_WORLD);
+			}
 		}
 		
 		// Finally, fill in our own array
@@ -350,13 +352,15 @@ int main(int argc, char *argv[])
 		printf("Node %d is still active having finished the handshake\n", rank);
 		
 		// Reaching this point means the handshake has been completed
-		int arraySize = (imaxNode+2)*(jmax+2);
-		printf("Node %d is now receiving u array\n", rank);
-		MPI_Recv(u, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		printf("Node %d is still active having received u array\n", rank);
-		MPI_Recv(v, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		MPI_Recv(p, arraySize, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		MPI_Recv(flag, arraySize, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
+		//need to loop through and get the columns separately!
+		for (i=0; i <= imaxNode+1; i++) {
+			MPI_Recv(u[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
+			printf("Node %d successfully received round %d of %d array values\n",rank, i+1, imaxNode+2);
+			MPI_Barrier(MPI_COMM_WORLD);
+		}
 	}
 	
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
