@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     infile = strdup("karman.bin");
     outfile = strdup("karman.bin");
 	
-	int size, rank = 0;
+	int size, rank, tag = 0;
 	
 	MPI_Status stat; 
 
@@ -163,6 +163,12 @@ int main(int argc, char *argv[])
 	// may need to make up the extra data space
 	
 	int imaxPrimary = imax -(imaxNode*(size-1));
+			
+	// Needed for moving the actual values to each of the nodes
+	// Keeping this available so they can be written into at the end of the process
+	// Can then be used to write to the file
+	float **uTemp, **vTemp, **pTemp;
+	char  **flagTemp;
 	
 	if (rank==0) {
 		/* Allocate arrays */
@@ -173,10 +179,6 @@ int main(int argc, char *argv[])
 		p    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
 		rhs  = alloc_floatmatrix(imaxPrimary+2, jmax+2); 
 		flag = alloc_charmatrix(imaxPrimary+2, jmax+2);
-		
-		// Needed for moving the actual values to each of the nodes
-		float **uTemp, **vTemp, **pTemp;
-		char  **flagTemp;
 		
 		uTemp    = alloc_floatmatrix(imax+2, jmax+2);
 		vTemp    = alloc_floatmatrix(imax+2, jmax+2);
@@ -237,7 +239,33 @@ int main(int argc, char *argv[])
 		// Now that these values have been set, we need to split them up for the
 		// different nodes
 		int node;
-		int success[1] = {1};
+		int success[1] = {0}; // 0 always means things are okay!
+		// Need confirmation from each other node that they succesfully allocated memory
+		for (node = 1; node < size; node++) {
+			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
+		}
+		// Now get receives
+		int failure = 0;
+		for (node = 1; node < size; node++) {
+			MPI_Recv(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD, &stat);
+			if (success[0] == 1) failure++;
+		}
+		// If we have reached end, with no failures, complete the handshake and get on with things!
+		if (failure > 0) {
+			success[0] = failure;
+		}
+		
+		for (node = 1; node < size; node++) {
+			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
+		}
+		
+		if (failure > 0) {
+			// Have already notified everyone that this broke
+			MPI_Finalize();
+			return 1;
+		}
+		
+		
 		for (node = 1; node<size; node++) {
 			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
 			// now need to construct the array specifically for the ith MPI node
@@ -268,6 +296,11 @@ int main(int argc, char *argv[])
 			}
 		}
 		
+		free_matrix(uNode);
+		free_matrix(vNode);
+		free_matrix(pNode);
+		free_matrix(flagNode);
+		
 	} else { // What to do if you are not the root node
 		/* Allocate arrays */
 		u    = alloc_floatmatrix(imaxNode+2, jmax+2);
@@ -277,6 +310,35 @@ int main(int argc, char *argv[])
 		p    = alloc_floatmatrix(imaxNode+2, jmax+2);
 		rhs  = alloc_floatmatrix(imaxNode+2, jmax+2); 
 		flag = alloc_charmatrix(imaxNode+2, jmax+2);
+		
+		int success[1] = {0}; // 0 Means things are okay!
+		
+		// Need to wait on success message from root
+		MPI_Recv(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &stat);
+		if (success[0] > 0) {
+			// Problem on the root, ending
+			MPI_Finalize();
+			return 1;
+		}
+		
+		if (!u || !v || !f || !g || !p || !rhs || !flag) {
+			// Let the other nodes know that there we were not successful at allocating memory
+			fprintf(stderr, "Couldn't allocate memory for matrices on node %d.\n", rank);
+			success[0] = 1;
+			MPI_Send(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
+			MPI_Recv(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Finalize();
+			return 1;
+		} else {
+			MPI_Send(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
+			MPI_Recv(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &stat);
+			if (success[0] > 0) {
+				MPI_Finalize();
+				return 1;
+			}
+		}
+		
+		
 		
 		
 	}
