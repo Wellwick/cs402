@@ -291,8 +291,8 @@ int main(int argc, char *argv[])
 				MPI_Send(pNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 				MPI_Send(flagNode[i], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD);
 				printf("Root has sent round %d of %d\n", i+1, imaxNode+2);
-				MPI_Barrier(MPI_COMM_WORLD);
 			}
+			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		
 		// Finally, fill in our own array
@@ -359,8 +359,9 @@ int main(int argc, char *argv[])
 			MPI_Recv(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
 			MPI_Recv(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
 			printf("Node %d successfully received round %d of %d array values\n",rank, i+1, imaxNode+2);
-			MPI_Barrier(MPI_COMM_WORLD);
 		}
+		
+		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
