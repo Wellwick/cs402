@@ -10,6 +10,11 @@
 extern int *ileft, *iright;
 extern int nprocs, proc;
 
+/*
+	Due to the complexity of MPI, there needs to be a deterministic selection
+	of which process handles which section of the fluid simulation
+*/
+
 /* Computation of tentative velocity field (f, g) */
 void compute_tentative_velocity(float **u, float **v, float **f, float **g,
     char **flag, int imax, int jmax, float del_t, float delx, float dely,
@@ -114,6 +119,8 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     float rdy2 = 1.0/(dely*dely);
     beta_2 = -omega/(2.0*(rdx2+rdy2));
 
+	// TODO Let's MPI reduce this!
+	
     /* Calculate sum of squares */
     for (i = 1; i <= imax; i++) {
         for (j=1; j<=jmax; j++) {
@@ -152,6 +159,8 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
             } /* end of i */
         } /* end of rb */
         
+		// TODO produce an MPI Reduce function
+		
         /* Partial computation of residual */
         *res = 0.0;
         for (i = 1; i <= imax; i++) {
@@ -168,8 +177,11 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
         }
         *res = sqrt((*res)/ifull)/p0;
 
+		// TODO need to MPI this back out to the other nodes
+		
         /* convergence? */
         if (*res<eps) break;
+		
     } /* end of iter */
 
     return iter;

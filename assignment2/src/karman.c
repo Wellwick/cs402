@@ -82,10 +82,16 @@ int main(int argc, char *argv[])
     infile = strdup("karman.bin");
     outfile = strdup("karman.bin");
 	
+	int size, rank = 0;
+	
 	MPI_Status stat; 
 
     /* all MPI programs start with MPI_Init */
     MPI_Init(&argc,&argv);
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int optc;
     while ((optc = getopt_long(argc, argv, GETOPTS, long_opts, NULL)) != -1) {
@@ -143,40 +149,109 @@ int main(int argc, char *argv[])
     delx = xlength/imax;
     dely = ylength/jmax;
 
-    /* Allocate arrays */
-    u    = alloc_floatmatrix(imax+2, jmax+2);
-    v    = alloc_floatmatrix(imax+2, jmax+2);
-    f    = alloc_floatmatrix(imax+2, jmax+2);
-    g    = alloc_floatmatrix(imax+2, jmax+2);
-    p    = alloc_floatmatrix(imax+2, jmax+2);
-    rhs  = alloc_floatmatrix(imax+2, jmax+2); 
-    flag = alloc_charmatrix(imax+2, jmax+2);                    
+	/*
+		There are two approaches to the start of this program.
+		1. The root process (0) can read in the file, and communicate all of the necessary data to each node.
+		2. Each process reads the file, and only retains information for the area they need.
+			a. But can multiple MPI processes read the same file simultaneously. 
+	*/
+	
+	float **uNode, **vNode, **pNode, **rhsNode, **fNode, **gNode;
+	char  **flagNode;
+	
+	/* This method uses vertical division between the seperate nodes */
+	int imaxNode = (imax/size);
+	uNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+	vNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+	fNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+	gNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+	pNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+	rhsNode  = alloc_floatmatrix(imaxNode+2, jmax+2);
+	flagNode = alloc_charmatrix(imaxNode+2, jmax+2);
+	
+	// Due to a rounding down error with the int values, the first node
+	// may need to make up the extra data space
+	
+	int imaxPrimary = imax -(imaxNode*(size-1));
+	float **uTemp, **vTemp, **pTemp, **rhsTemp, **fTemp, **gTemp;
+	char  **flagTemp;
+	
+	if (rank==0) {
+		/* Allocate arrays */
+		u    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
+		v    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
+		f    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
+		g    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
+		p    = alloc_floatmatrix(imaxPrimary+2, jmax+2);
+		rhs  = alloc_floatmatrix(imaxPrimary+2, jmax+2); 
+		flag = alloc_charmatrix(imaxPrimary+2, jmax+2);
+		
+		// Needed for moving the actual values to each of the nodes
+		uTemp    = alloc_floatmatrix(imax+2, jmax+2);
+		vTemp    = alloc_floatmatrix(imax+2, jmax+2);
+		fTemp    = alloc_floatmatrix(imax+2, jmax+2);
+		gTemp    = alloc_floatmatrix(imax+2, jmax+2);
+		pTemp    = alloc_floatmatrix(imax+2, jmax+2);
+		rhsTemp  = alloc_floatmatrix(imax+2, jmax+2); 
+		flagTemp = alloc_charmatrix(imax+2, jmax+2);
+		
+		if (!u || !v || !f || !g || !p || !rhs || !flag 
+		|| !uNode || !vNode || !fNode || !gNode || !pNode || !rhsNode || !flagNode
+		|| !uTemp || !vTemp || !fTemp || !gTemp || !pTemp || !rhsTemp || !flagTemp) {
+			// Let the other nodes know that there we were not successful at allocating memory
+			fprintf(stderr, "Couldn't allocate memory for matrices.\n");
+			int fail[1] = {1};
+			for (i = 1; i < size; i++) {
+				// Sends the value 1 to each 
+				MPI_Send(fail, 1, MPI_INT, i, tag, MPI_COMM_WORLD);
+			}
+			MPI_Finalize(); 
+			return 1;
+		}
 
-    if (!u || !v || !f || !g || !p || !rhs || !flag) {
-        fprintf(stderr, "Couldn't allocate memory for matrices.\n");
-        return 1;
-    }
+		/* Read in initial values from a file if it exists */
+		init_case = read_bin(uTemp, vTemp, pTemp, flagTemp, imax, jmax, xlength, ylength, infile);
+			
+		if (init_case > 0) {
+			/* Error while reading file */
+			// Let the other nodes know that there we were not successful at reading
+			int fail[1] = {1};
+			for (i = 1; i < size; i++) {
+				// Sends the value 1 to each 
+				MPI_Send(fail, 1, MPI_INT, i, tag, MPI_COMM_WORLD);
+			}
+			MPI_Finalize(); 
+			return 1;
+		}
 
-    /* Read in initial values from a file if it exists */
-    init_case = read_bin(u, v, p, flag, imax, jmax, xlength, ylength, infile);
-        
-    if (init_case > 0) {
-        /* Error while reading file */
-        return 1;
-    }
-
-    if (init_case < 0) {
-        /* Set initial values if file doesn't exist */
-        for (i=0;i<=imax+1;i++) {
-            for (j=0;j<=jmax+1;j++) {
-                u[i][j] = ui;
-                v[i][j] = vi;
-                p[i][j] = 0.0;
-            }
-        }
-        init_flag(flag, imax, jmax, delx, dely, &ibound);
-        apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
-    }
+		if (init_case < 0) {
+			/* Set initial values if file doesn't exist */
+			for (i=0;i<=imax+1;i++) {
+				for (j=0;j<=jmax+1;j++) {
+					uTemp[i][j] = ui;
+					vTemp[i][j] = vi;
+					pTemp[i][j] = 0.0;
+				}
+			}
+			init_flag(flagTemp, imax, jmax, delx, dely, &ibound);
+			apply_boundary_conditions(uTemp, vTemp, flagTemp, imax, jmax, ui, vi);
+		}
+		
+		// Now that these values have been set, we need to split them up for the
+		// different nodes
+		int node;
+		for (node = 1; node<size; node++) {
+			int success[1] = {1};
+			MPI_Send(success, 1, MPI_INT, node, tag, MPI_COMM_WORLD);
+			// now need to construct the array specifically for the ith MPI node
+			for (i = 0; i <= (imax/size)+1; i++) {
+				int pos = 
+				for (j = 0; j <= jmax+1; j++) {
+					uNode[i][j] = u[i]
+				}
+			}
+		}
+	}
 
     /* Main loop */
     for (t = 0.0; t < t_end; t += del_t, iters++) {
