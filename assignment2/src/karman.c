@@ -401,9 +401,49 @@ int main(int argc, char *argv[])
 	// Do a (maybe unnecessary) check so every node is at the same point
 	MPI_Barrier(MPI_COMM_WORLD);
 	
+	// Make sure to write the root information to the larger temp array as well
+	for (i=1; i <= imaxPrimary; i++) {
+		uTemp[i] = u[i];
+		vTemp[i] = v[i];
+		pTemp[i] = p[i];
+		flagTemp[i] = flag[i];
+	}
+	
+	int node;
+	
+	// Need to collate all of the data
+	if (rank == 0) {
+		for (node = 1; node < size; node++) {
+			for (i=1; i <= imaxNode; i++) {
+				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
+				MPI_Recv(uTemp[pos], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD, &stat);
+				MPI_Recv(vTemp[pos], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD, &stat);
+				MPI_Recv(pTemp[pos], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD, &stat);
+				MPI_Recv(flagTemp[pos], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD, &stat);
+				// printf("Root has received round %d of %d\n", i, imaxNode+1); // Debug
+			}
+			/*
+			 * There are additional values in the far right boundary of the final node
+			 * however these are never modified, so they do not need to be retransferred
+			 */
+		}
+	} else {
+		// Send the information that is within out vertical bounds
+		for (i=1; i <= imaxNode; i++) {
+			MPI_Send(u[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+			MPI_Send(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+			MPI_Send(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+			MPI_Send(flag[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+		}
+		printf("Node %d has send their arrays back to root\n", rank);
+	}
   
-    if (outfile != NULL && strcmp(outfile, "") != 0 && proc == 0) {
-        write_bin(u, v, p, flag, imax, jmax, xlength, ylength, outfile);
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	// Only the first node can write the file
+    if (outfile != NULL && strcmp(outfile, "") != 0 && proc == 0 && rank == 0) {
+        write_bin(uTemp, vTemp, pTemp, flagTemp, imax, jmax, xlength, ylength, outfile);
+		printf("Root node has written the file\n");
     }
 
     free_matrix(u);
@@ -413,6 +453,14 @@ int main(int argc, char *argv[])
     free_matrix(p);
     free_matrix(rhs);
     free_matrix(flag);
+	
+	// If this is the root node, make sure to free the temp arrays
+	if (rank == 0) {
+		free_matrix(uTemp);
+		free_matrix(vTemp);
+		free_matrix(pTemp);
+		free_matrix(flagTemp);
+	}
 	
     /* MPI Programs end with MPI Finalize; this is a weak synchronization point */
     MPI_Finalize(); 
