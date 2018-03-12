@@ -369,34 +369,66 @@ int main(int argc, char *argv[])
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
 	// Most of the MPI handling for this gets dealt with in simulation
-	
-    /* Main loop */
-    for (t = 0.0; t < t_end; t += del_t, iters++) {
-        set_timestep_interval(&del_t, imax, jmax, delx, dely, u, v, Re, tau);
+	if (rank == 0) {
+		/* Main loop */
+		for (t = 0.0; t < t_end; t += del_t, iters++) {
+			set_timestep_interval(&del_t, imaxPrimary, jmax, delx, dely, u, v, Re, tau);
 
-        ifluid = (imax * jmax) - ibound;
+			ifluid = (imaxPrimary * jmax) - ibound;
 
-        compute_tentative_velocity(u, v, f, g, flag, imax, jmax,
-            del_t, delx, dely, gamma, Re);
+			compute_tentative_velocity(u, v, f, g, flag, imaxPrimary, jmax,
+				del_t, delx, dely, gamma, Re);
+			printf("Node %i has computed tentative velocity", rank);
 
-        compute_rhs(f, g, rhs, flag, imax, jmax, del_t, delx, dely);
+			compute_rhs(f, g, rhs, flag, imaxPrimary, jmax, del_t, delx, dely);
 
-        if (ifluid > 0) {
-            itersor = poisson(p, rhs, flag, imax, jmax, delx, dely,
-                        eps, itermax, omega, &res, ifluid);
-        } else {
-            itersor = 0;
-        }
+			if (ifluid > 0) {
+				itersor = poisson(p, rhs, flag, imaxPrimary, jmax, delx, dely,
+							eps, itermax, omega, &res, ifluid);
+			} else {
+				itersor = 0;
+			}
 
-        if (proc == 0 && verbose > 1) {
-            printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
-                iters, t+del_t, del_t, itersor, res, ibound);
-        }
+			if (proc == 0 && verbose > 1) {
+				printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
+					iters, t+del_t, del_t, itersor, res, ibound);
+			}
 
-        update_velocity(u, v, f, g, p, flag, imax, jmax, del_t, delx, dely);
+			update_velocity(u, v, f, g, p, flag, imaxPrimary, jmax, del_t, delx, dely);
 
-        apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
-    } /* End of main loop */
+			apply_boundary_conditions(u, v, flag, imaxPrimary, jmax, ui, vi);
+		} /* End of main loop */
+	} else {
+		/* Main loop */
+		for (t = 0.0; t < t_end; t += del_t, iters++) {
+			set_timestep_interval(&del_t, imaxNode, jmax, delx, dely, u, v, Re, tau);
+			printf("Node %i has completed the timestep inteval", rank);
+
+			ifluid = (imaxNode * jmax) - ibound;
+
+			compute_tentative_velocity(u, v, f, g, flag, imaxNode, jmax,
+				del_t, delx, dely, gamma, Re);
+			printf("Node %i has computed tentative velocity", rank);
+
+			compute_rhs(f, g, rhs, flag, imaxNode, jmax, del_t, delx, dely);
+
+			if (ifluid > 0) {
+				itersor = poisson(p, rhs, flag, imaxNode, jmax, delx, dely,
+							eps, itermax, omega, &res, ifluid);
+			} else {
+				itersor = 0;
+			}
+
+			if (proc == 0 && verbose > 1) {
+				printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
+					iters, t+del_t, del_t, itersor, res, ibound);
+			}
+
+			update_velocity(u, v, f, g, p, flag, imaxNode, jmax, del_t, delx, dely);
+
+			apply_boundary_conditions(u, v, flag, imaxNode, jmax, ui, vi);
+		} /* End of main loop */
+	}
   
 	// Do a (maybe unnecessary) check so every node is at the same point
 	MPI_Barrier(MPI_COMM_WORLD);
