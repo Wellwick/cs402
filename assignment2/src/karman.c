@@ -368,83 +368,58 @@ int main(int argc, char *argv[])
 	
 	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
+	int imaxLocal;
+	// Make use of a local variable for the width of the calculated area
+	if (rank == 0)
+		imaxLocal = imaxPrimary;
+	else
+		imaxLocal = imaxNode;
+	
 	// Most of the MPI handling for this gets dealt with in simulation
-	if (rank == 0) {
-		/* Main loop */
-		for (t = 0.0; t < t_end; t += del_t, iters++) {
-			set_timestep_interval(&del_t, imaxPrimary, jmax, delx, dely, u, v, Re, tau);
+	/* Main loop */
+	for (t = 0.0; t < t_end; t += del_t, iters++) {
+		set_timestep_interval(&del_t, imaxLocal, jmax, delx, dely, u, v, Re, tau);
 
-			ifluid = (imaxPrimary * jmax) - ibound;
+		ifluid = (imaxLocal * jmax) - ibound;
 
-			compute_tentative_velocity(u, v, f, g, flag, imaxPrimary, jmax,
-				del_t, delx, dely, gamma, Re);
-			printf("Node %i has computed tentative velocity", rank);
+		compute_tentative_velocity(u, v, f, g, flag, imaxLocal, jmax,
+			del_t, delx, dely, gamma, Re);
 
-			compute_rhs(f, g, rhs, flag, imaxPrimary, jmax, del_t, delx, dely);
+		compute_rhs(f, g, rhs, flag, imaxLocal, jmax, del_t, delx, dely);
 
-			if (ifluid > 0) {
-				itersor = poisson(p, rhs, flag, imaxPrimary, jmax, delx, dely,
-							eps, itermax, omega, &res, ifluid);
-			} else {
-				itersor = 0;
-			}
+		if (ifluid > 0) {
+			itersor = poisson(p, rhs, flag, imaxLocal, jmax, delx, dely,
+						eps, itermax, omega, &res, ifluid);
+		} else {
+			itersor = 0;
+		}
 
-			if (proc == 0 && verbose > 1) {
-				printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
-					iters, t+del_t, del_t, itersor, res, ibound);
-			}
+		if (proc == 0 && verbose > 1) {
+			printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
+				iters, t+del_t, del_t, itersor, res, ibound);
+		}
 
-			update_velocity(u, v, f, g, p, flag, imaxPrimary, jmax, del_t, delx, dely);
+		update_velocity(u, v, f, g, p, flag, imaxLocal, jmax, del_t, delx, dely);
 
-			apply_boundary_conditions(u, v, flag, imaxPrimary, jmax, ui, vi);
-		} /* End of main loop */
-	} else {
-		/* Main loop */
-		for (t = 0.0; t < t_end; t += del_t, iters++) {
-			set_timestep_interval(&del_t, imaxNode, jmax, delx, dely, u, v, Re, tau);
-			printf("Node %i has completed the timestep inteval", rank);
-
-			ifluid = (imaxNode * jmax) - ibound;
-
-			compute_tentative_velocity(u, v, f, g, flag, imaxNode, jmax,
-				del_t, delx, dely, gamma, Re);
-			printf("Node %i has computed tentative velocity", rank);
-
-			compute_rhs(f, g, rhs, flag, imaxNode, jmax, del_t, delx, dely);
-
-			if (ifluid > 0) {
-				itersor = poisson(p, rhs, flag, imaxNode, jmax, delx, dely,
-							eps, itermax, omega, &res, ifluid);
-			} else {
-				itersor = 0;
-			}
-
-			if (proc == 0 && verbose > 1) {
-				printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
-					iters, t+del_t, del_t, itersor, res, ibound);
-			}
-
-			update_velocity(u, v, f, g, p, flag, imaxNode, jmax, del_t, delx, dely);
-
-			apply_boundary_conditions(u, v, flag, imaxNode, jmax, ui, vi);
-		} /* End of main loop */
-	}
+		apply_boundary_conditions(u, v, flag, imaxLocal, jmax, ui, vi);
+	} /* End of main loop */
   
+	printf("Node %d has completed the main loop\n", rank);
+	
 	// Do a (maybe unnecessary) check so every node is at the same point
 	MPI_Barrier(MPI_COMM_WORLD);
-	
-	// Make sure to write the root information to the larger temp array as well
-	for (i=1; i <= imaxPrimary; i++) {
-		uTemp[i] = u[i];
-		vTemp[i] = v[i];
-		pTemp[i] = p[i];
-		flagTemp[i] = flag[i];
-	}
 	
 	int node;
 	
 	// Need to collate all of the data
 	if (rank == 0) {
+		// Make sure to write the root information to the larger temp array as well
+		for (i=1; i <= imaxPrimary; i++) {
+			uTemp[i] = u[i];
+			vTemp[i] = v[i];
+			pTemp[i] = p[i];
+			flagTemp[i] = flag[i];
+		}
 		for (node = 1; node < size; node++) {
 			for (i=1; i <= imaxNode; i++) {
 				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
@@ -465,7 +440,7 @@ int main(int argc, char *argv[])
 			MPI_Send(u[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
 			MPI_Send(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
 			MPI_Send(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
-			MPI_Send(flag[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+			MPI_Send(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD);
 		}
 		printf("Node %d has send their arrays back to root\n", rank);
 	}
