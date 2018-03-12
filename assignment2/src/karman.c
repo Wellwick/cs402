@@ -293,8 +293,8 @@ int main(int argc, char *argv[])
 				MPI_Send(flagNode[i], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD);
 				// printf("Root has sent round %d of %d\n", i+1, imaxNode+2); // Debug
 			}
-			MPI_Barrier(MPI_COMM_WORLD);
 		}
+		MPI_Barrier(MPI_COMM_WORLD);
 		
 		// Finally, fill in our own array
 		for (i = 0; i <= imaxPrimary+1; i++) {

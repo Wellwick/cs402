@@ -1,0 +1,6 @@
+#!/bin/bash
+#MSUB -q cs402
+#MSUB -l nodes=4:ppn=1
+#MSUB -l pmem=1024
+#MSUB -l walltime=00:02:00
+srun -n 4 ./karman -i test/initial.bin -o 4split.bin
