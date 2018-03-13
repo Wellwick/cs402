@@ -196,7 +196,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 				MPI_Isend(p[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, requestLeftSend);
 				MPI_Irecv(p[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, requestRightRecv);
 			}
-			if (rank != size) { // Need to transfer to the right
+			if (rank != size-1) { // Need to transfer to the right
 				MPI_Irecv(p[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, requestLeftRecv);
 				// Transfer with tag value of 2, non blocking send
 				MPI_Isend(p[imax],   jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, requestRightSend);
@@ -205,7 +205,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 			// Now make sure these are received!
 			if (rank != 0) 
 				MPI_Wait(requestRightRecv, &stat);
-			if (rank != size)
+			if (rank != size-1)
 				MPI_Wait(requestLeftRecv, &stat);
 			
 			
@@ -217,7 +217,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 			MPI_Isend(p[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, requestLeftSend);
 			MPI_Irecv(p[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, requestRightRecv);
 		}
-		if (rank != size) { // Need to transfer to the right
+		if (rank != size-1) { // Need to transfer to the right
 			MPI_Irecv(p[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, requestLeftRecv);
 			// Transfer with tag value of 2, non blocking send
 			MPI_Isend(p[imax],   jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, requestRightSend);
@@ -226,7 +226,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		// Now make sure these are received!
 		if (rank != 0) 
 			MPI_Wait(requestRightRecv, &stat);
-		if (rank != size)
+		if (rank != size-1)
 			MPI_Wait(requestLeftRecv, &stat);
 		
 		// TODO produce an MPI Reduce function
@@ -248,10 +248,21 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
             }
         }
 		
+		float resTot = 0.0;
+		MPI_Reduce(res, &resTot, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 		
-        *res = sqrt((*res)/ifull)/p0;
-
-		// TODO need to MPI this back out to the other nodes
+		if (rank == 0) {
+			*res = resTot;
+			*res = sqrt((*res)/ifull)/p0;
+			int node;
+			// Send back out to the rest of the nodes
+			for (node = 1; node < size; node++) {
+				MPI_Send(res, 1, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+			}
+		} else {
+			MPI_Recv(res, 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+		}
+		
 		
         /* convergence? */
         if (*res<eps) break;

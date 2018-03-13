@@ -234,7 +234,8 @@ int main(int argc, char *argv[])
 				}
 			}
 			init_flag(flagTemp, imax, jmax, delx, dely, &ibound);
-			apply_boundary_conditions(uTemp, vTemp, flagTemp, imax, jmax, ui, vi);
+			// If we set size to 0, no communication will be done
+			apply_boundary_conditions(uTemp, vTemp, pTemp, flagTemp, imax, jmax, ui, vi, rank, 0);
 		}
 		
 		printf("Root node has completed read. Starting handshake to %d nodes\n", size-1);
@@ -409,7 +410,7 @@ int main(int argc, char *argv[])
 
 		update_velocity(u, v, f, g, p, flag, imaxLocal, jmax, del_t, delx, dely);
 
-		apply_boundary_conditions(u, v, flag, imaxLocal, jmax, ui, vi);
+		apply_boundary_conditions(u, v, p, flag, imaxLocal, jmax, ui, vi, rank, size);
 	} /* End of main loop */
   
 	printf("Node %d has completed the main loop\n", rank);
