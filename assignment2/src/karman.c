@@ -375,12 +375,20 @@ int main(int argc, char *argv[])
 	else
 		imaxLocal = imaxNode;
 	
+	// TODO need to calculate what the iStartPos is for each of the ranks
+	int iStartPos = 0;
+	for (i = 0; i < rank; i++) {
+		// Need to add the imaxPrimary val
+		if (i == 0) iStartPos += imaxPrimary;
+		else iStartPos += imaxNode;
+	}
+	
 	// Most of the MPI handling for this gets dealt with in simulation
 	/* Main loop */
 	for (t = 0.0; t < t_end; t += del_t, iters++) {
 		set_timestep_interval(&del_t, imaxLocal, jmax, delx, dely, u, v, Re, tau);
 
-		ifluid = (imaxLocal * jmax) - ibound;
+		ifluid = (imax * jmax) - ibound;
 
 		compute_tentative_velocity(u, v, f, g, flag, imaxLocal, jmax,
 			del_t, delx, dely, gamma, Re);
@@ -389,7 +397,7 @@ int main(int argc, char *argv[])
 
 		if (ifluid > 0) {
 			itersor = poisson(p, rhs, flag, imaxLocal, jmax, delx, dely,
-						eps, itermax, omega, &res, ifluid);
+						eps, itermax, omega, &res, ifluid, rank, size, iStartPos);
 		} else {
 			itersor = 0;
 		}

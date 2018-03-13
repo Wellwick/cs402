@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -107,19 +108,23 @@ void compute_rhs(float **f, float **g, float **rhs, char **flag, int imax,
 /* Red/Black SOR to solve the poisson equation */
 int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     float delx, float dely, float eps, int itermax, float omega,
-    float *res, int ifull)
+    float *res, int ifull, int rank, int size, int iStartPos)
 {
     int i, j, iter;
     float add, beta_2, beta_mod;
     float p0 = 0.0;
     
     int rb; /* Red-black value. */
+	
+	/* Bear in mind there are three new variable
+	 * rank - Which MPI process we are in
+	 * size - How many MPI processes there are
+	 * iStartPos - necessary for making sure the rb value is correct
+	 */
 
     float rdx2 = 1.0/(delx*delx);
     float rdy2 = 1.0/(dely*dely);
     beta_2 = -omega/(2.0*(rdx2+rdy2));
-
-	// TODO Let's MPI reduce this!
 	
     /* Calculate sum of squares */
     for (i = 1; i <= imax; i++) {
@@ -127,16 +132,42 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
             if (flag[i][j] & C_F) { p0 += p[i][j]*p[i][j]; }
         }
     }
-   
-    p0 = sqrt(p0/ifull);
-    if (p0 < 0.0001) { p0 = 1.0; }
+	
+	// MPI Reduce the calculated p0 value to the root node
+	float pTot = 0.0;
+	MPI_Reduce(&p0, &pTot, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	
+	MPI_Status stat;
+	int tag = 0;
+	
+	if (rank == 0) {
+		// Now redistribute the p0 value
+		p0 = sqrt(pTot/ifull);
+		if (p0 < 0.0001) { p0 = 1.0; }
+		
+		// Need to send to the rest of the nodes
+		int node = 0;
+		for (node = 1; i < size; i++) {
+			MPI_Send(&p0, 1, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+		}
+	} else {
+		MPI_Recv(&p0, 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+	}
+	
+	MPI_Barrier(MPI_COMM_WORLD);
+			
+	MPI_Request *requestLeftSend;
+	MPI_Request *requestLeftRecv;
+	MPI_Request *requestRightSend;
+	MPI_Request *requestRightRecv;
+	
 
     /* Red/Black SOR-iteration */
     for (iter = 0; iter < itermax; iter++) {
         for (rb = 0; rb <= 1; rb++) {
             for (i = 1; i <= imax; i++) {
                 for (j = 1; j <= jmax; j++) {
-                    if ((i+j) % 2 != rb) { continue; }
+                    if ((i+j+iStartPos) % 2 != rb) { continue; }
                     if (flag[i][j] == (C_F | B_NSEW)) {
                         /* five point star for interior fluid cells */
                         p[i][j] = (1.-omega)*p[i][j] - 
@@ -157,9 +188,50 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
                     }
                 } /* end of j */
             } /* end of i */
+
+			
+			// Need to transfer p values for the next phase of red/black SOR iteration
+			if (rank != 0) { // Need to transfer to the left
+				// Transfer with tag value of 1, with a non blocking send
+				MPI_Isend(p[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, requestLeftSend);
+				MPI_Irecv(p[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, requestRightRecv);
+			}
+			if (rank != size) { // Need to transfer to the right
+				MPI_Irecv(p[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, requestLeftRecv);
+				// Transfer with tag value of 2, non blocking send
+				MPI_Isend(p[imax],   jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, requestRightSend);
+			}
+			
+			// Now make sure these are received!
+			if (rank != 0) 
+				MPI_Wait(requestRightRecv, &stat);
+			if (rank != size)
+				MPI_Wait(requestLeftRecv, &stat);
+			
+			
         } /* end of rb */
         
+		// Need to transfer boundary columns before the res value is calculated
+		if (rank != 0) { // Need to transfer to the left
+			// Transfer with tag value of 1, with a non blocking send
+			MPI_Isend(p[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, requestLeftSend);
+			MPI_Irecv(p[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, requestRightRecv);
+		}
+		if (rank != size) { // Need to transfer to the right
+			MPI_Irecv(p[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, requestLeftRecv);
+			// Transfer with tag value of 2, non blocking send
+			MPI_Isend(p[imax],   jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, requestRightSend);
+		}
+		
+		// Now make sure these are received!
+		if (rank != 0) 
+			MPI_Wait(requestRightRecv, &stat);
+		if (rank != size)
+			MPI_Wait(requestLeftRecv, &stat);
+		
 		// TODO produce an MPI Reduce function
+		
+		
 		
         /* Partial computation of residual */
         *res = 0.0;
@@ -175,6 +247,8 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
                 }
             }
         }
+		
+		
         *res = sqrt((*res)/ifull)/p0;
 
 		// TODO need to MPI this back out to the other nodes
