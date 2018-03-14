@@ -140,7 +140,8 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	MPI_Request sendRight;
 	MPI_Request recieveRight;
 	
-	float recieveData[(jmax+2)*3];
+	float recieveDataRight[(jmax+2)*3];
+	float recieveDataLeft[(jmax+2)*3];
 	
 	if (rank != 0) {
 		float sendData[(jmax+2)*3];
@@ -153,7 +154,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 		MPI_Isend(&sendData, (jmax+2)*3, MPI_FLOAT, rank-1, 3, MPI_COMM_WORLD, &sendLeft);
 		
 		// Need to receive from the left as well
-		MPI_Irecv(&recieveData, (jmax+2)*3, MPI_FLOAT, rank-1, 4, MPI_COMM_WORLD, &recieveRight);
+		MPI_Irecv(&recieveDataRight, (jmax+2)*3, MPI_FLOAT, rank-1, 4, MPI_COMM_WORLD, &recieveRight);
 	} 
 	if (rank != size-1) {
 		float sendData[(jmax+2)*3];
@@ -166,7 +167,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 		MPI_Isend(&sendData, (jmax+2)*3, MPI_FLOAT, rank+1, 4, MPI_COMM_WORLD, &sendRight);
 		
 		// Need to receive from the right
-		MPI_Irecv(&recieveData, (jmax+2)*3, MPI_FLOAT, rank+1, 3, MPI_COMM_WORLD, &recieveLeft);
+		MPI_Irecv(&recieveDataLeft, (jmax+2)*3, MPI_FLOAT, rank+1, 3, MPI_COMM_WORLD, &recieveLeft);
 	}
 
     /* Finally, fix the horizontal velocity at the  western edge to have
@@ -184,18 +185,18 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 		MPI_Wait(&sendLeft, &stat);
 		MPI_Wait(&recieveRight, &stat);
 		for (i = 0; i < jmax+2; i++) {
-			u[0][i] = recieveData[i];
-			v[0][i] = recieveData[i+(jmax+2)];
-			p[0][i] = recieveData[i+((jmax+2)*2)];
+			u[0][i] = recieveDataRight[i];
+			v[0][i] = recieveDataRight[i+(jmax+2)];
+			p[0][i] = recieveDataRight[i+((jmax+2)*2)];
 		}
 	}
 	if (rank != size-1) {
 		MPI_Wait(&sendRight, &stat);
 		MPI_Wait(&recieveLeft, &stat);
 		for (i = 0; i < jmax+2; i++) {
-			u[imax+1][i] = recieveData[i];
-			v[imax+1][i] = recieveData[i+(jmax+2)];
-			p[imax+1][i] = recieveData[i+((jmax+2)*2)];
+			u[imax+1][i] = recieveDataLeft[i];
+			v[imax+1][i] = recieveDataLeft[i+(jmax+2)];
+			p[imax+1][i] = recieveDataLeft[i+((jmax+2)*2)];
 		}
 		
 	}
