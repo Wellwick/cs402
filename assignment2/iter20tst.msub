@@ -1,0 +1,25 @@
+#!/bin/bash
+#MSUB -q cs402
+#MSUB -l nodes=4:ppn=5
+#MSUB -l pmem=1024
+#MSUB -l walltime=00:10:00
+srun -n 1 ./karman -i test/initial.bin -o karman.bin
+srun -n 2 ./karman -i karman.bin -o karman.bin
+srun -n 3 ./karman -i karman.bin -o karman.bin
+srun -n 4 ./karman -i karman.bin -o karman.bin
+srun -n 5 ./karman -i karman.bin -o karman.bin
+srun -n 6 ./karman -i karman.bin -o karman.bin
+srun -n 7 ./karman -i karman.bin -o karman.bin
+srun -n 8 ./karman -i karman.bin -o karman.bin
+srun -n 9 ./karman -i karman.bin -o karman.bin
+srun -n 10 ./karman -i karman.bin -o karman.bin
+srun -n 11 ./karman -i karman.bin -o karman.bin
+srun -n 12 ./karman -i karman.bin -o karman.bin
+srun -n 13 ./karman -i karman.bin -o karman.bin
+srun -n 14 ./karman -i karman.bin -o karman.bin
+srun -n 15 ./karman -i karman.bin -o karman.bin
+srun -n 16 ./karman -i karman.bin -o karman.bin
+srun -n 17 ./karman -i karman.bin -o karman.bin
+srun -n 18 ./karman -i karman.bin -o karman.bin
+srun -n 19 ./karman -i karman.bin -o karman.bin
+srun -n 20 ./karman -i karman.bin -o karman.bin
