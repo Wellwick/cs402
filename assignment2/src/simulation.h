@@ -10,7 +10,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     float *res, int ifull, int rank, int size, int iStartPos);
 
 void update_velocity(float **u, float **v, float **f, float **g, float **p,
-    char **flag, int imax, int jmax, float del_t, float delx, float dely);
+    char **flag, int imax, int jmax, float del_t, float delx, float dely, int rank, int size);
 
 void set_timestep_interval(float *del_t, int imax, int jmax, float delx,
     float dely, float **u, float **v, float Re, float tau, int rank, int size);

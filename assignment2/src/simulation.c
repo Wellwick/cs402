@@ -26,6 +26,8 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
 
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
+			// In the case of the last column, we don't perform this action
+			if (rank == size - 1 && i == imax) continue;
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
                 du2dx = ((u[i][j]+u[i+1][j])*(u[i][j]+u[i+1][j])+
@@ -295,12 +297,14 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
  * velocity values and the new pressure matrix
  */
 void update_velocity(float **u, float **v, float **f, float **g, float **p,
-    char **flag, int imax, int jmax, float del_t, float delx, float dely)
+    char **flag, int imax, int jmax, float del_t, float delx, float dely, int rank, int size)
 {
     int i, j;
 
-    for (i=1; i<=imax-1; i++) {
+    for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
+			// In the case of the last column, we don't perform this action
+			if (rank == size - 1 && i == imax) continue;
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
                 u[i][j] = f[i][j]-(p[i+1][j]-p[i][j])*del_t/delx;

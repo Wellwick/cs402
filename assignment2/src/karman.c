@@ -410,7 +410,7 @@ int main(int argc, char *argv[])
 				iters, t+del_t, del_t, itersor, res, ibound);
 		}
 
-		update_velocity(u, v, f, g, p, flag, imaxLocal, jmax, del_t, delx, dely);
+		update_velocity(u, v, f, g, p, flag, imaxLocal, jmax, del_t, delx, dely, rank, size);
 
 		apply_boundary_conditions(u, v, p, flag, imaxLocal, jmax, ui, vi, rank, size);
 	} /* End of main loop */
