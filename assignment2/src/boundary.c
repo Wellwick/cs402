@@ -39,6 +39,15 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
+	 
+	// Unfortunately there is a dependency here, since each of the previous
+	// nodes must have completed before this node starts
+	int canGo = 1;
+	if (rank != 0) {
+		MPI_Status stat;
+		MPI_Recv(&canGo, 1, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &stat);
+	}
+	 
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
             if (flag[i][j] & B_NSEW) {
@@ -91,6 +100,10 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
             }
         }
     }
+	
+	// Have to let the next node go!
+	if (rank != size-1)
+		MPI_Send(&canGo, 1, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
 	
 	MPI_Status stat;
 	
