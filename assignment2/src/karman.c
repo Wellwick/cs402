@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 			apply_boundary_conditions(uTemp, vTemp, pTemp, flagTemp, imax, jmax, ui, vi, rank, 0);
 		}
 		
-		printf("Root node has completed read. Starting handshake to %d nodes\n", size-1);
+		//printf("Root node has completed read. Starting handshake to %d nodes\n", size-1);
 		
 		// Now that these values have been set, we need to split them up for the
 		// different nodes
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		printf("Root node has finished the handshake with all nodes\n");
+		//printf("Root node has finished the handshake with all nodes\n");
 		
 		
 		for (node = 1; node<size; node++) {
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 				}
 			}
 			// Send the four necessary arrays
-			printf("Root is now sending arrays to node %d\n",node);
+			//printf("Root is now sending arrays to node %d\n",node);
 			for (i=0; i <= imaxNode+1; i++) {
 				MPI_Send(uNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 				MPI_Send(vNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
-	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
+	//printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
 	int imaxLocal;
 	// Make use of a local variable for the width of the calculated area
@@ -384,22 +384,53 @@ int main(int argc, char *argv[])
 		else iStartPos += imaxNode;
 	}
 	
+	double intervalTimer = 0.0;
+	double tentVelTimer = 0.0;
+	double rhsTimer = 0.0;
+	double poissonTimer = 0.0;
+	double velTimer = 0.0;
+	double boundaryTimer = 0.0;
+	double tempTimer;
+	int poissonCalcs = 0;
+	
 	// Most of the MPI handling for this gets dealt with in simulation
 	/* Main loop */
 	for (t = 0.0; t < t_end; t += del_t, iters++) {
+		if (rank == 0) tempTimer = MPI_Wtime();
 		set_timestep_interval(&del_t, imaxLocal, jmax, delx, dely, u, v, Re, tau, rank, size);
+		if (rank == 0) {
+			tempTimer = MPI_Wtime() - tempTimer;
+			intervalTimer += tempTimer;
+		}
 
 		ifluid = (imax * jmax) - ibound;
-
+		
+		if (rank == 0) tempTimer = MPI_Wtime();
 		compute_tentative_velocity(u, v, f, g, flag, imaxLocal, jmax,
 			del_t, delx, dely, gamma, Re, rank, size);
-
+		if (rank == 0) {
+			tempTimer = MPI_Wtime() - tempTimer;
+			tentVelTimer += tempTimer;
+		}
+		
+		
+		if (rank == 0) tempTimer = MPI_Wtime();
 		compute_rhs(f, g, rhs, flag, imaxLocal, jmax, del_t, delx, dely);
-
+		if (rank == 0) {
+			tempTimer = MPI_Wtime() - tempTimer;
+			rhsTimer += tempTimer;
+		}
+		
 		if (ifluid > 0) {
+			if (rank == 0) tempTimer = MPI_Wtime();
 			//printf("Node %d is performing the poisson calculation\n", rank);
 			itersor = poisson(p, rhs, flag, imaxLocal, jmax, delx, dely,
 						eps, itermax, omega, &res, ifluid, rank, size, iStartPos);
+			if (rank == 0) {
+				tempTimer = MPI_Wtime() - tempTimer;
+				poissonTimer += tempTimer;
+				poissonCalcs++;
+			}
 		} else {
 			itersor = 0;
 			//printf("Node %d has an ifluid value of %d\n",rank,ifluid);
@@ -409,14 +440,35 @@ int main(int argc, char *argv[])
 			printf("%d t:%g, del_t:%g, SOR iters:%3d, res:%e, bcells:%d\n",
 				iters, t+del_t, del_t, itersor, res, ibound);
 		}
-
+		
+		if (rank == 0) tempTimer = MPI_Wtime();
 		update_velocity(u, v, f, g, p, flag, imaxLocal, jmax, del_t, delx, dely, rank, size);
-
+		if (rank == 0) {
+			tempTimer = MPI_Wtime() - tempTimer;
+			velTimer += tempTimer;
+		}
+		
+		if (rank == 0) tempTimer = MPI_Wtime();
 		apply_boundary_conditions(u, v, p, flag, imaxLocal, jmax, ui, vi, rank, size);
+		if (rank == 0) {
+			tempTimer = MPI_Wtime() - tempTimer;
+			boundaryTimer += tempTimer;
+		}
 	} /* End of main loop */
-  
-	if (rank == 0) printf("Program took %d iterations\n", iters);
-	printf("Node %d has completed the main loop\n", rank);
+	
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	if (rank == 0) {
+		printf("Program took %d iterations across %d MPI nodes\n", iters, size);
+		// Let's display some running time information
+		printf("Average time for set_timestep_interval      : %f\n", intervalTimer / (double)iters);
+		printf("Average time for compute_tentative_velocity : %f\n", tentVelTimer / (double)iters);
+		printf("Average time for compute_rhs                : %f\n", rhsTimer / (double)iters);
+		printf("Average time for poisson                    : %f\n", poissonTimer / (double)poissonCalcs);
+		printf("Average time for update_velocity            : %f\n", velTimer / (double)iters);
+		printf("Average time for apply_boundary_conditions  : %f\n", boundaryTimer / (double)iters);
+	}
+	//printf("Node %d has completed the main loop\n", rank);
 	
 	// Do a (maybe unnecessary) check so every node is at the same point
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -461,7 +513,7 @@ int main(int argc, char *argv[])
 			MPI_Send(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
 			MPI_Send(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD);
 		}
-		printf("Node %d has send their arrays back to root\n", rank);
+		//printf("Node %d has send their arrays back to root\n", rank);
 	}
   
 	MPI_Barrier(MPI_COMM_WORLD);
