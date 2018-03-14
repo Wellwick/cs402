@@ -42,12 +42,14 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	 
 	// Unfortunately there is a dependency here, since each of the previous
 	// nodes must have completed before this node starts
-	int canGo = 1;
 	if (rank != 0) {
 		MPI_Status stat;
-		MPI_Recv(&canGo, 1, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &stat);
+		MPI_Recv(u[0], jmax+2, MPI_FLOAT, rank-1, 0, MPI_COMM_WORLD, &stat);
+		MPI_Recv(v[0], jmax+2, MPI_FLOAT, rank-1, 0, MPI_COMM_WORLD, &stat);
 	}
-	 
+	
+	MPI_Request sendRequest;
+	
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
             if (flag[i][j] & B_NSEW) {
@@ -99,13 +101,39 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
                 }
             }
         }
+		// Need to send 0th position back, because this node may have updated it
+		if (rank != 0 && i == 1) {
+			float sendData[(jmax+2)*2];
+			for (j = 0; j < jmax+2; j++) {
+				sendData[j] 		 = u[0][j];
+				sendData[j+(jmax+2)] = v[0][j];
+			}
+			MPI_Isend(&sendData, (jmax+2)*2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, &sendRequest);
+		}
     }
 	
-	// Have to let the next node go!
-	if (rank != size-1)
-		MPI_Send(&canGo, 1, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
 	
 	MPI_Status stat;
+	if (rank != 0) {
+		MPI_Wait(&sendRequest, &stat);
+	}
+	
+	// Have to let the next node go!
+	if (rank != size-1) {
+		MPI_Send(u[imax], jmax+2, MPI_FLOAT, rank+1, 0, MPI_COMM_WORLD);
+		MPI_Send(v[imax], jmax+2, MPI_FLOAT, rank+1, 0, MPI_COMM_WORLD);
+		// Will get back an updated u and v, just in case
+		float receivedData[(jmax+2)*2];
+		MPI_Request receiveRequest;
+		MPI_Irecv(&receivedData, (jmax+2)*2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, &receiveRequest);
+		MPI_Wait(&receiveRequest, &stat);
+		for (j = 0; j < jmax+2; j++) {
+			u[imax][j] = receivedData[j];
+			v[imax][j] = receivedData[j+(jmax+2)];
+		}
+	}
+	
+	MPI_Barrier(MPI_COMM_WORLD);
 	
 	MPI_Request sendLeft;
 	MPI_Request recieveLeft;
