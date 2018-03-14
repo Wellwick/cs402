@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		printf("Node %d has started the handshake with the root node\n", rank);
+		//printf("Node %d has started the handshake with the root node\n", rank);
 		
 		if (!u || !v || !f || !g || !p || !rhs || !flag) {
 			// Let the other nodes know that there we were not successful at allocating memory
@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		
-		printf("Node %d is still active having finished the handshake\n", rank);
+		//printf("Node %d is still active having finished the handshake\n", rank);
 		
 		// Reaching this point means the handshake has been completed
 		//need to loop through and get the columns separately!
