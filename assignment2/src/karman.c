@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
 	// Most of the MPI handling for this gets dealt with in simulation
 	/* Main loop */
 	for (t = 0.0; t < t_end; t += del_t, iters++) {
-		set_timestep_interval(&del_t, imaxLocal, jmax, delx, dely, u, v, Re, tau);
+		set_timestep_interval(&del_t, imaxLocal, jmax, delx, dely, u, v, Re, tau, rank, size);
 
 		ifluid = (imax * jmax) - ibound;
 
@@ -397,10 +397,12 @@ int main(int argc, char *argv[])
 		compute_rhs(f, g, rhs, flag, imaxLocal, jmax, del_t, delx, dely);
 
 		if (ifluid > 0) {
+			printf("Node %d is performing the poisson calculation\n", rank);
 			itersor = poisson(p, rhs, flag, imaxLocal, jmax, delx, dely,
 						eps, itermax, omega, &res, ifluid, rank, size, iStartPos);
 		} else {
 			itersor = 0;
+			printf("Node %d has an ifluid value of %d\n",rank,ifluid);
 		}
 
 		if (proc == 0 && verbose > 1) {

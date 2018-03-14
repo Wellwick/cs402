@@ -94,40 +94,38 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	
 	MPI_Status stat;
 	
-	MPI_Request *sendULeft;
-	MPI_Request *sendVLeft;
-	MPI_Request *sendPLeft;
-	MPI_Request *recieveULeft;
-	MPI_Request *recieveVLeft;
-	MPI_Request *recievePLeft;
-	MPI_Request *sendURight;
-	MPI_Request *sendVRight;
-	MPI_Request *sendPRight;
-	MPI_Request *recieveURight;
-	MPI_Request *recieveVRight;
-	MPI_Request *recievePRight;
+	MPI_Request sendLeft;
+	MPI_Request recieveLeft;
+	MPI_Request sendRight;
+	MPI_Request recieveRight;
+	
+	float recieveData[(jmax+2)*3];
 	
 	if (rank != 0) {
+		float sendData[(jmax+2)*3];
+		for (i = 0; i < jmax+2; i++) {
+			sendData[i] 			 = u[1][i];
+			sendData[i+jmax+2] 		 = v[1][i];
+			sendData[i+((jmax+2)*2)] = p[1][i];
+		}
 		// Need to send out u, v and p values to the left
-		MPI_Isend(u[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, sendULeft);
-		MPI_Isend(v[1], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, sendVLeft);
-		MPI_Isend(p[1], jmax+2, MPI_FLOAT, rank-1, 3, MPI_COMM_WORLD, sendPLeft);
+		MPI_Isend(sendData, (jmax+2)*3, MPI_FLOAT, rank-1, 3, MPI_COMM_WORLD, &sendLeft);
 		
 		// Need to receive from the left as well
-		MPI_Irecv(u[0], jmax+2, MPI_FLOAT, rank-1, 4, MPI_COMM_WORLD, recieveURight);
-		MPI_Irecv(v[0], jmax+2, MPI_FLOAT, rank-1, 5, MPI_COMM_WORLD, recieveVRight);
-		MPI_Irecv(p[0], jmax+2, MPI_FLOAT, rank-1, 6, MPI_COMM_WORLD, recievePRight);
+		MPI_Irecv(recieveData, (jmax+2)*3, MPI_FLOAT, rank-1, 4, MPI_COMM_WORLD, &recieveRight);
 	} 
 	if (rank != size-1) {
+		float sendData[(jmax+2)*3];
+		for (i = 0; i < jmax+2; i++) {
+			sendData[i] 			 = u[imax][i];
+			sendData[i+jmax+2] 		 = v[imax][i];
+			sendData[i+((jmax+2)*2)] = p[imax][i];
+		}
 		// Need to send to the right
-		MPI_Isend(u[imax], jmax+2, MPI_FLOAT, rank+1, 4, MPI_COMM_WORLD, sendURight);
-		MPI_Isend(v[imax], jmax+2, MPI_FLOAT, rank+1, 5, MPI_COMM_WORLD, sendVRight);
-		MPI_Isend(p[imax], jmax+2, MPI_FLOAT, rank+1, 6, MPI_COMM_WORLD, sendPRight);
+		MPI_Isend(sendData, (jmax+2)*3, MPI_FLOAT, rank+1, 4, MPI_COMM_WORLD, &sendRight);
 		
 		// Need to receive from the right
-		MPI_Irecv(u[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, recieveULeft);
-		MPI_Irecv(v[imax+1], jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, recieveVLeft);
-		MPI_Irecv(p[imax+1], jmax+2, MPI_FLOAT, rank+1, 3, MPI_COMM_WORLD, recievePLeft);
+		MPI_Irecv(recieveData, (jmax+2)*3, MPI_FLOAT, rank+1, 3, MPI_COMM_WORLD, &recieveLeft);
 	}
 
     /* Finally, fix the horizontal velocity at the  western edge to have
@@ -142,19 +140,22 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	}
 	
 	if (rank != 0) {
-		MPI_Wait(sendULeft, &stat);
-		MPI_Wait(sendVLeft, &stat);
-		MPI_Wait(sendPLeft, &stat);
-		MPI_Wait(recieveURight, &stat);
-		MPI_Wait(recieveVRight, &stat);
-		MPI_Wait(recievePRight, &stat);
+		MPI_Wait(&sendLeft, &stat);
+		MPI_Wait(&recieveRight, &stat);
+		for (i = 0; i < jmax+2; i++) {
+			u[0][i] = recieveData[i];
+			v[0][i] = recieveData[i+(jmax+2)];
+			p[0][i] = recieveData[i+((jmax+2)*2)];
+		}
 	}
 	if (rank != size-1) {
-		MPI_Wait(sendURight, &stat);
-		MPI_Wait(sendVRight, &stat);
-		MPI_Wait(sendPRight, &stat);
-		MPI_Wait(recieveULeft, &stat);
-		MPI_Wait(recieveVLeft, &stat);
-		MPI_Wait(recievePLeft, &stat);
+		MPI_Wait(&sendRight, &stat);
+		MPI_Wait(&recieveLeft, &stat);
+		for (i = 0; i < jmax+2; i++) {
+			u[imax+1][i] = recieveData[i];
+			v[imax+1][i] = recieveData[i+(jmax+2)];
+			p[imax+1][i] = recieveData[i+((jmax+2)*2)];
+		}
+		
 	}
 }
