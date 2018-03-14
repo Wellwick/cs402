@@ -426,14 +426,19 @@ int main(int argc, char *argv[])
 	// Need to collate all of the data
 	if (rank == 0) {
 		// Make sure to write the root information to the larger temp array as well
-		for (i=1; i <= imaxPrimary; i++) {
-			uTemp[i] = u[i];
-			vTemp[i] = v[i];
-			pTemp[i] = p[i];
-			flagTemp[i] = flag[i];
+		for (i=0; i <= imaxPrimary; i++) {
+			for (j=0; j < jmax+2; j++) {			
+				uTemp[i][j] = u[i][j];
+				vTemp[i][j] = v[i][j];
+				pTemp[i][j] = p[i][j];
+				flagTemp[i][j] = flag[i][j];	
+			}
 		}
 		for (node = 1; node < size; node++) {
-			for (i=1; i <= imaxNode; i++) {
+			// if this is the last node, we need to transfer the far edge again
+			int imaxLocal = imaxNode;
+			if (node == size-1) imaxLocal++;
+			for (i=1; i <= imaxLocal; i++) {
 				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
 				MPI_Recv(uTemp[pos], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD, &stat);
 				MPI_Recv(vTemp[pos], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD, &stat);
@@ -448,7 +453,9 @@ int main(int argc, char *argv[])
 		}
 	} else {
 		// Send the information that is within out vertical bounds
-		for (i=1; i <= imaxNode; i++) {
+		int imaxLocal = imaxNode;
+		if (rank == size-1) imaxLocal++;
+		for (i=1; i <= imaxLocal; i++) {
 			MPI_Send(u[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
 			MPI_Send(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
 			MPI_Send(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
@@ -472,6 +479,8 @@ int main(int argc, char *argv[])
     free_matrix(p);
     free_matrix(rhs);
     free_matrix(flag);
+	
+	//printf("Node %d has finished\n", rank);
 	
 	// If this is the root node, make sure to free the temp arrays
 	if (rank == 0) {
