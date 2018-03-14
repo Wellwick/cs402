@@ -1,9 +1,10 @@
 Root node has sent confirmation to all nodes
 Program took 203 iterations across 4 MPI nodes
-Average time for set_timestep_interval      : 0.000049
-Average time for compute_tentative_velocity : 0.001169
-Average time for compute_rhs                : 0.000133
-Average time for poisson                    : 0.029658
-Average time for update_velocity            : 0.000093
-Average time for apply_boundary_conditions  : 0.000087
+Average time for set_timestep_interval      : 0.000050
+Average time for compute_tentative_velocity : 0.001162
+Average time for compute_rhs                : 0.000132
+Average time for poisson                    : 0.029487
+Average time for update_velocity            : 0.000092
+Average time for apply_boundary_conditions  : 0.000080
 Root node has written the file
+Running time                                : 6.315580

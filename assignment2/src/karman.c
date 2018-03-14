@@ -92,6 +92,9 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+	
+	double runningTime;
+	if (rank == 0) runningTime = MPI_Wtime();
 
     int optc;
     while ((optc = getopt_long(argc, argv, GETOPTS, long_opts, NULL)) != -1) {
@@ -540,6 +543,11 @@ int main(int argc, char *argv[])
 		free_matrix(vTemp);
 		free_matrix(pTemp);
 		free_matrix(flagTemp);
+	}
+	
+	if (rank == 0) {
+		runningTime = MPI_Wtime() - runningTime;
+		printf("Running time                                : %f\n", runningTime);
 	}
 	
     /* MPI Programs end with MPI Finalize; this is a weak synchronization point */
