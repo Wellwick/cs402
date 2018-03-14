@@ -392,17 +392,17 @@ int main(int argc, char *argv[])
 		ifluid = (imax * jmax) - ibound;
 
 		compute_tentative_velocity(u, v, f, g, flag, imaxLocal, jmax,
-			del_t, delx, dely, gamma, Re);
+			del_t, delx, dely, gamma, Re, rank, size);
 
 		compute_rhs(f, g, rhs, flag, imaxLocal, jmax, del_t, delx, dely);
 
 		if (ifluid > 0) {
-			printf("Node %d is performing the poisson calculation\n", rank);
+			//printf("Node %d is performing the poisson calculation\n", rank);
 			itersor = poisson(p, rhs, flag, imaxLocal, jmax, delx, dely,
 						eps, itermax, omega, &res, ifluid, rank, size, iStartPos);
 		} else {
 			itersor = 0;
-			printf("Node %d has an ifluid value of %d\n",rank,ifluid);
+			//printf("Node %d has an ifluid value of %d\n",rank,ifluid);
 		}
 
 		if (proc == 0 && verbose > 1) {
@@ -415,6 +415,7 @@ int main(int argc, char *argv[])
 		apply_boundary_conditions(u, v, p, flag, imaxLocal, jmax, ui, vi, rank, size);
 	} /* End of main loop */
   
+	if (rank == 0) printf("Program took %d iterations", iters);
 	printf("Node %d has completed the main loop\n", rank);
 	
 	// Do a (maybe unnecessary) check so every node is at the same point

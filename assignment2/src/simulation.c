@@ -19,7 +19,7 @@ extern int nprocs, proc;
 /* Computation of tentative velocity field (f, g) */
 void compute_tentative_velocity(float **u, float **v, float **f, float **g,
     char **flag, int imax, int jmax, float del_t, float delx, float dely,
-    float gamma, float Re)
+    float gamma, float Re, int rank, int size)
 {
     int  i, j;
     float du2dx, duvdy, duvdx, dv2dy, laplu, laplv;
@@ -73,15 +73,44 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
         }
     }
 
-    /* f & g at external boundaries */
-    for (j=1; j<=jmax; j++) {
-        f[0][j]    = u[0][j];
-        f[imax][j] = u[imax][j];
-    }
+	MPI_Request leftSend;
+	MPI_Request leftReceive;
+	MPI_Request rightSend;
+	MPI_Request rightReceive;
+	
+	// Need to MPI transfer the boundaries between the nodes
+	if (rank != 0) {
+		MPI_Isend(f[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, &leftSend);
+		MPI_Irecv(f[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, &rightReceive);
+	} else {
+		for (j=1; j<=jmax; j++) {
+			f[0][j] = u[0][j];
+		}
+	}
+	if (rank != size-1) {
+		MPI_Isend(f[imax], jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, &rightSend);
+		MPI_Irecv(f[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, &leftReceive);
+	} else {
+		for (j=1; j<=jmax; j++) {
+			f[imax][j] = u[imax][j];
+		}
+	}
+	
+    /* g at external boundaries */
     for (i=1; i<=imax; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
+	MPI_Status stat;
+	if (rank != 0) {
+		MPI_Wait(&leftSend, &stat);
+		MPI_Wait(&rightReceive, &stat);
+	}
+	if (rank != size-1) {
+		MPI_Wait(&rightSend, &stat);
+		MPI_Wait(&leftReceive, &stat);
+	}
+	
 }
 
 
@@ -255,7 +284,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		
     } /* end of iter */
 	
-	printf("Node %d has completed the Red/Black SOR iteration\n", rank);
+	//printf("Node %d has completed the Red/Black SOR iteration\n", rank);
 
     return iter;
 }
