@@ -174,7 +174,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		p0 = sqrt(pTot/ifull);
 		if (p0 < 0.0001) { p0 = 1.0; }
 		
-		printf("Node 0 has reduced the value of p0 as %f\n", p0);
+		//printf("Node 0 has reduced the value of p0 as %f\n", p0);
 		
 		// Need to send to the rest of the nodes
 		int node = 0;
@@ -183,7 +183,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		}
 	} else {
 		MPI_Recv(&p0, 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
-		printf("Node %d has received the value of p0\n", rank);
+		//printf("Node %d has received the value of p0\n", rank);
 	}
 	
 	MPI_Barrier(MPI_COMM_WORLD);

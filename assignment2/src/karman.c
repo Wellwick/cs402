@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
 		apply_boundary_conditions(u, v, p, flag, imaxLocal, jmax, ui, vi, rank, size);
 	} /* End of main loop */
   
-	if (rank == 0) printf("Program took %d iterations", iters);
+	if (rank == 0) printf("Program took %d iterations\n", iters);
 	printf("Node %d has completed the main loop\n", rank);
 	
 	// Do a (maybe unnecessary) check so every node is at the same point
