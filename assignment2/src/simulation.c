@@ -131,6 +131,7 @@ void compute_rhs(float **f, float **g, float **rhs, char **flag, int imax,
             }
         }
     }
+	// Don't need to transfer rhs because it's never used for adjacent cells
 }
 
 
