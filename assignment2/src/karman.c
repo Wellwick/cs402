@@ -189,7 +189,17 @@ int main(int argc, char *argv[])
 		pTemp    = alloc_floatmatrix(imax+2, jmax+2);
 		flagTemp = alloc_charmatrix(imax+2, jmax+2);
 		
-		if (!u || !v || !f || !g || !p || !rhs || !flag
+		// Used for sending to each node only their values
+		float **uNode, **vNode, **pNode;
+		char  **flagNode;
+		
+		uNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		vNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		pNode    = alloc_floatmatrix(imaxNode+2, jmax+2);
+		flagNode = alloc_charmatrix(imaxNode+2, jmax+2);
+		
+		if (!u || !v || !f || !g || !p || !rhs || !flag 
+		|| !uNode || !vNode || !pNode || !flagNode
 		|| !uTemp || !vTemp || !pTemp || !flagTemp) {
 			// Let the other nodes know that there we were not successful at allocating memory
 			fprintf(stderr, "Couldn't allocate memory for matrices.\n");
@@ -228,7 +238,7 @@ int main(int argc, char *argv[])
 			}
 			init_flag(flagTemp, imax, jmax, delx, dely, &ibound);
 			// If we set size to 0, no communication will be done
-			apply_boundary_conditions(uTemp, vTemp, pTemp, flagTemp, imax, jmax, ui, vi, rank, 1);
+			apply_boundary_conditions(uTemp, vTemp, pTemp, flagTemp, imax, jmax, ui, vi, rank, 0);
 		}
 		
 		//printf("Root node has completed read. Starting handshake to %d nodes\n", size-1);
@@ -264,7 +274,33 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		// Fill in our own array
+		//printf("Root node has finished the handshake with all nodes\n");
+		
+		
+		for (node = 1; node<size; node++) {
+			// now need to construct the array specifically for the ith MPI node
+			for (i = 0; i <= imaxNode+1; i++) {
+				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
+				for (j = 0; j <= jmax+1; j++) {
+					uNode[i][j] 	= uTemp[pos][j];
+					vNode[i][j] 	= vTemp[pos][j];
+					pNode[i][j] 	= pTemp[pos][j];
+					flagNode[i][j] 	= flagTemp[pos][j];
+				}
+			}
+			// Send the four necessary arrays
+			//printf("Root is now sending arrays to node %d\n",node);
+			for (i=0; i <= imaxNode+1; i++) {
+				MPI_Send(uNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(vNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(pNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
+				MPI_Send(flagNode[i], jmax+2, MPI_CHAR, node, tag, MPI_COMM_WORLD);
+				// printf("Root has sent round %d of %d\n", i+1, imaxNode+2); // Debug
+			}
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		// Finally, fill in our own array
 		for (i = 0; i <= imaxPrimary+1; i++) {
 			for (j = 0; j <= jmax+1; j++) {
 				u[i][j] 	= uTemp[i][j];
@@ -273,6 +309,11 @@ int main(int argc, char *argv[])
 				flag[i][j] 	= flagTemp[i][j];
 			}
 		}
+		
+		free_matrix(uNode);
+		free_matrix(vNode);
+		free_matrix(pNode);
+		free_matrix(flagNode);
 		
 	} else { // What to do if you are not the root node
 		/* Allocate arrays */
@@ -283,11 +324,6 @@ int main(int argc, char *argv[])
 		p    = alloc_floatmatrix(imaxNode+2, jmax+2);
 		rhs  = alloc_floatmatrix(imaxNode+2, jmax+2); 
 		flag = alloc_charmatrix(imaxNode+2, jmax+2);
-		
-		uTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		vTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		pTemp    = alloc_floatmatrix(imax+2, jmax+2);
-		flagTemp = alloc_charmatrix(imax+2, jmax+2);
 		
 		int success[1] = {0}; // 0 Means things are okay!
 		
@@ -301,8 +337,7 @@ int main(int argc, char *argv[])
 		
 		//printf("Node %d has started the handshake with the root node\n", rank);
 		
-		if (!u || !v || !f || !g || !p || !rhs || !flag
-		 || !uTemp || !vTemp || !pTemp || !flagTemp) {
+		if (!u || !v || !f || !g || !p || !rhs || !flag) {
 			// Let the other nodes know that there we were not successful at allocating memory
 			fprintf(stderr, "Couldn't allocate memory for matrices on node %d.\n", rank);
 			success[0] = 1;
@@ -311,31 +346,6 @@ int main(int argc, char *argv[])
 			MPI_Finalize();
 			return 1;
 		} else {
-			
-			init_case = read_bin(uTemp, vTemp, pTemp, flagTemp, imax, jmax, xlength, ylength, infile);
-			if (init_case > 0) {
-				// This is a failure on initializing
-				fprintf(stderr, "Initialization case failed on node %d.\n", rank);
-				success[0] = 1;
-				MPI_Send(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
-				MPI_Recv(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &stat);
-				MPI_Finalize();
-				return 1;
-			}
-			if (init_case < 0) {
-				/* Set initial values if file doesn't exist */
-				for (i=0;i<=imax+1;i++) {
-					for (j=0;j<=jmax+1;j++) {
-						uTemp[i][j] = ui;
-						vTemp[i][j] = vi;
-						pTemp[i][j] = 0.0;
-					}
-				}
-				init_flag(flagTemp, imax, jmax, delx, dely, &ibound);
-				// If we set size to 1, no communication will be done
-				apply_boundary_conditions(uTemp, vTemp, pTemp, flagTemp, imax, jmax, ui, vi, 0, 1);
-			}
-			
 			MPI_Send(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
 			MPI_Recv(success, 1, MPI_INT, 0, tag, MPI_COMM_WORLD, &stat);
 			if (success[0] > 0) {
@@ -349,26 +359,19 @@ int main(int argc, char *argv[])
 		// Reaching this point means the handshake has been completed
 		//need to loop through and get the columns separately!
 		for (i=0; i <= imaxNode+1; i++) {
-			int pos = imaxPrimary + ((rank-1)*imaxNode) + i;
-			for (j=0; j <= jmax+1; j++) {
-				u[i][j] = uTemp[pos][j];
-				v[i][j] = vTemp[pos][j];
-				p[i][j] = pTemp[pos][j];
-				flag[i][j] = flagTemp[pos][j];
-			}
-			//printf("Node %d has completed column %d of %d\n",rank,pos+1,imax+2);
+			MPI_Recv(u[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(v[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(p[i], jmax+2, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &stat);
+			MPI_Recv(flag[i], jmax+2, MPI_CHAR, 0, tag, MPI_COMM_WORLD, &stat);
+			// Debug line
+			// printf("Node %d successfully received round %d of %d array values\n",rank, i+1, imaxNode+2);
 		}
 		
-		free_matrix(uTemp);
-		free_matrix(vTemp);
-		free_matrix(pTemp);
-		free_matrix(flagTemp);
+		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
 	//printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
-	MPI_Barrier(MPI_COMM_WORLD);
-	
 	int imaxLocal;
 	// Make use of a local variable for the width of the calculated area
 	if (rank == 0)
