@@ -128,7 +128,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 		MPI_Request receiveRequest;
 		MPI_Irecv(&receivedData, (jmax+2)*2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, &receiveRequest);
 		MPI_Wait(&receiveRequest, &stat);
-		//#pragma omp parallel for schedule(static) private(j)
+		#pragma omp parallel for schedule(static) private(j)
 		for (j = 0; j < jmax+2; j++) {
 			u[imax][j] = receivedData[j];
 			v[imax][j] = receivedData[j+(jmax+2)];
@@ -147,7 +147,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	
 	if (rank != 0) {
 		float sendData[(jmax+2)*3];
-		//#pragma omp parallel for schedule(static) private(i)
+		#pragma omp parallel for schedule(static) private(i)
 		for (i = 0; i < jmax+2; i++) {
 			sendData[i] 			 = u[1][i];
 			sendData[i+jmax+2] 		 = v[1][i];
@@ -161,7 +161,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	} 
 	if (rank != size-1) {
 		float sendData[(jmax+2)*3];
-		//#pragma omp parallel for schedule(static) private(i)
+		#pragma omp parallel for schedule(static) private(i)
 		for (i = 0; i < jmax+2; i++) {
 			sendData[i] 			 = u[imax][i];
 			sendData[i+jmax+2] 		 = v[imax][i];
@@ -179,7 +179,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
      */
 	if (rank == 0) {
 		v[0][0] = 2*vi-v[1][0];
-		//#pragma omp parallel for schedule(static) private(j)
+		#pragma omp parallel for schedule(static) private(j)
 		for (j=1;j<=jmax;j++) {
 			u[0][j] = ui;
 			v[0][j] = 2*vi-v[1][j];
@@ -189,7 +189,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	if (rank != 0) {
 		MPI_Wait(&sendLeft, &stat);
 		MPI_Wait(&recieveRight, &stat);
-		//#pragma omp parallel for schedule(static) private(i)
+		#pragma omp parallel for schedule(static) private(i)
 		for (i = 0; i < jmax+2; i++) {
 			u[0][i] = recieveDataRight[i];
 			v[0][i] = recieveDataRight[i+(jmax+2)];
@@ -199,7 +199,7 @@ void apply_boundary_conditions(float **u, float **v, float **p, char **flag,
 	if (rank != size-1) {
 		MPI_Wait(&sendRight, &stat);
 		MPI_Wait(&recieveLeft, &stat);
-		//#pragma omp parallel for schedule(static) private(i)
+		#pragma omp parallel for schedule(static) private(i)
 		for (i = 0; i < jmax+2; i++) {
 			u[imax+1][i] = recieveDataLeft[i];
 			v[imax+1][i] = recieveDataLeft[i+(jmax+2)];

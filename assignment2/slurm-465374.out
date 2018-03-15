@@ -206,11 +206,11 @@ Have completed round 200 with a t value of 2.069649 and t_end value of 2.100000
 Have completed round 201 with a t value of 2.080202 and t_end value of 2.100000
 Have completed round 202 with a t value of 2.090757 and t_end value of 2.100000
 Program took 203 iterations across 2 MPI nodes
-Average time for set_timestep_interval      : 0.000084
-Average time for compute_tentative_velocity : 0.002624
-Average time for compute_rhs                : 0.000264
-Average time for poisson                    : 0.056373
+Average time for set_timestep_interval      : 0.000085
+Average time for compute_tentative_velocity : 0.002689
+Average time for compute_rhs                : 0.000267
+Average time for poisson                    : 0.056251
 Average time for update_velocity            : 0.000184
-Average time for apply_boundary_conditions  : 0.000076
+Average time for apply_boundary_conditions  : 0.000111
 Root node has written the file
-Running time                                : 12.113732
+Running time                                : 12.114045
