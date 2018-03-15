@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
 	double poissonTimer = 0.0;
 	double velTimer = 0.0;
 	double boundaryTimer = 0.0;
-	double tempTimer;
+	double tempTimer = 0.0;
 	int poissonCalcs = 0;
 	
 	// Most of the MPI handling for this gets dealt with in simulation

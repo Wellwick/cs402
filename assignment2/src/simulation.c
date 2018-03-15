@@ -25,7 +25,7 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
     int  i, j;
     float du2dx, duvdy, duvdx, dv2dy, laplu, laplv;
 
-	//#pragma omp parallel for schedule(static) private(i,j, du2dx, duvdy, laplu)
+	#pragma omp parallel for schedule(static) private(i,j, du2dx, duvdy, laplu)
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
 			// In the case of the last column, we don't perform this action
@@ -52,7 +52,7 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
         }
     }
 	
-	//#pragma omp parallel for schedule(static) private(i,j, duvdx, dv2dy, laplv)
+	#pragma omp parallel for schedule(static) private(i,j, duvdx, dv2dy, laplv)
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -88,7 +88,7 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
 		MPI_Isend(f[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, &leftSend);
 		MPI_Irecv(f[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, &rightReceive);
 	} else {
-		//#pragma omp parallel for schedule(static) private(j)
+		#pragma omp parallel for schedule(static) private(j)
 		for (j=1; j<=jmax; j++) {
 			f[0][j] = u[0][j];
 		}
@@ -97,14 +97,14 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
 		MPI_Isend(f[imax], jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, &rightSend);
 		MPI_Irecv(f[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, &leftReceive);
 	} else {
-		//#pragma omp parallel for schedule(static) private(j)
+		#pragma omp parallel for schedule(static) private(j)
 		for (j=1; j<=jmax; j++) {
 			f[imax][j] = u[imax][j];
 		}
 	}
 	
     /* g at external boundaries */
-    //#pragma omp parallel for schedule(static) private(i)
+    #pragma omp parallel for schedule(static) private(i)
 	for (i=1; i<=imax; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
@@ -128,7 +128,7 @@ void compute_rhs(float **f, float **g, float **rhs, char **flag, int imax,
 {
     int i, j;
 
-    //#pragma omp parallel for schedule(static) private(i,j)
+    #pragma omp parallel for schedule(static) private(i,j)
 	for (i=1;i<=imax;i++) {
         for (j=1;j<=jmax;j++) {
             if (flag[i][j] & C_F) {
@@ -313,7 +313,7 @@ void update_velocity(float **u, float **v, float **f, float **g, float **p,
 {
     int i, j;
 
-    //#pragma omp parallel for schedule(static) private(i,j)
+    #pragma omp parallel for schedule(static) private(i,j)
 	for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
 			// In the case of the last column, we don't perform this action
@@ -324,7 +324,7 @@ void update_velocity(float **u, float **v, float **f, float **g, float **p,
             }
         }
     }
-    //#pragma omp parallel for schedule(static) private(i,j)
+    #pragma omp parallel for schedule(static) private(i,j)
 	for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
