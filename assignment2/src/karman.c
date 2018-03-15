@@ -4,6 +4,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <errno.h>
+#include <omp.h>
 #include "alloc.h"
 #include "boundary.h"
 #include "datadef.h"
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 	
-	double runningTime;
+	double runningTime = 0.0;
 	if (rank == 0) runningTime = MPI_Wtime();
 
     int optc;
@@ -229,6 +230,7 @@ int main(int argc, char *argv[])
 
 		if (init_case < 0) {
 			/* Set initial values if file doesn't exist */
+			#pragma omp parallel for schedule(static) private (i,j)
 			for (i=0;i<=imax+1;i++) {
 				for (j=0;j<=jmax+1;j++) {
 					uTemp[i][j] = ui;
@@ -279,6 +281,7 @@ int main(int argc, char *argv[])
 		
 		for (node = 1; node<size; node++) {
 			// now need to construct the array specifically for the ith MPI node
+			#pragma omp parallel for schedule(static) private(i,j)
 			for (i = 0; i <= imaxNode+1; i++) {
 				int pos = imaxPrimary + ((node-1)*imaxNode) + i;
 				for (j = 0; j <= jmax+1; j++) {
@@ -289,7 +292,8 @@ int main(int argc, char *argv[])
 				}
 			}
 			// Send the four necessary arrays
-			//printf("Root is now sending arrays to node %d\n",node);
+			printf("Root is now sending arrays to node %d\n",node);
+			// Can not parallelize this with OMP because the positions can't be guaranteed
 			for (i=0; i <= imaxNode+1; i++) {
 				MPI_Send(uNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
 				MPI_Send(vNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
@@ -301,6 +305,7 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 		
 		// Finally, fill in our own array
+		#pragma omp parallel for schedule(static) private(i,j)
 		for (i = 0; i <= imaxPrimary+1; i++) {
 			for (j = 0; j <= jmax+1; j++) {
 				u[i][j] 	= uTemp[i][j];
@@ -370,7 +375,7 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
-	//printf("Node %d has completed the handshake and is ready to start processing\n",rank);
+	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
 	int imaxLocal;
 	// Make use of a local variable for the width of the calculated area
@@ -456,6 +461,7 @@ int main(int argc, char *argv[])
 		if (rank == 0) {
 			tempTimer = MPI_Wtime() - tempTimer;
 			boundaryTimer += tempTimer;
+			printf("Have completed round %d with a t value of %f and t_end value of %f\n",iters, t, t_end);
 		}
 	} /* End of main loop */
 	
@@ -481,6 +487,7 @@ int main(int argc, char *argv[])
 	// Need to collate all of the data
 	if (rank == 0) {
 		// Make sure to write the root information to the larger temp array as well
+		#pragma omp parallel for schedule(static) private(i,j)
 		for (i=0; i <= imaxPrimary; i++) {
 			for (j=0; j < jmax+2; j++) {			
 				uTemp[i][j] = u[i][j];

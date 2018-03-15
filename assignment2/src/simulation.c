@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 #include "datadef.h"
 #include "init.h"
 
@@ -24,6 +25,7 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
     int  i, j;
     float du2dx, duvdy, duvdx, dv2dy, laplu, laplv;
 
+	//#pragma omp parallel for schedule(static) private(i,j, du2dx, duvdy, laplu)
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
 			// In the case of the last column, we don't perform this action
@@ -49,7 +51,8 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
             }
         }
     }
-
+	
+	//#pragma omp parallel for schedule(static) private(i,j, duvdx, dv2dy, laplv)
     for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -85,6 +88,7 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
 		MPI_Isend(f[1], jmax+2, MPI_FLOAT, rank-1, 1, MPI_COMM_WORLD, &leftSend);
 		MPI_Irecv(f[0], jmax+2, MPI_FLOAT, rank-1, 2, MPI_COMM_WORLD, &rightReceive);
 	} else {
+		//#pragma omp parallel for schedule(static) private(j)
 		for (j=1; j<=jmax; j++) {
 			f[0][j] = u[0][j];
 		}
@@ -93,13 +97,15 @@ void compute_tentative_velocity(float **u, float **v, float **f, float **g,
 		MPI_Isend(f[imax], jmax+2, MPI_FLOAT, rank+1, 2, MPI_COMM_WORLD, &rightSend);
 		MPI_Irecv(f[imax+1], jmax+2, MPI_FLOAT, rank+1, 1, MPI_COMM_WORLD, &leftReceive);
 	} else {
+		//#pragma omp parallel for schedule(static) private(j)
 		for (j=1; j<=jmax; j++) {
 			f[imax][j] = u[imax][j];
 		}
 	}
 	
     /* g at external boundaries */
-    for (i=1; i<=imax; i++) {
+    //#pragma omp parallel for schedule(static) private(i)
+	for (i=1; i<=imax; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
@@ -122,7 +128,8 @@ void compute_rhs(float **f, float **g, float **rhs, char **flag, int imax,
 {
     int i, j;
 
-    for (i=1;i<=imax;i++) {
+    //#pragma omp parallel for schedule(static) private(i,j)
+	for (i=1;i<=imax;i++) {
         for (j=1;j<=jmax;j++) {
             if (flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
@@ -159,7 +166,9 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     beta_2 = -omega/(2.0*(rdx2+rdy2));
 	
     /* Calculate sum of squares */
-    for (i = 1; i <= imax; i++) {
+    // Can double up on the parallelised reductions
+	//#pragma omp parallel for schedule(static) private(i,j) reduction(+:p0)
+	for (i = 1; i <= imax; i++) {
         for (j=1; j<=jmax; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j]*p[i][j]; }
         }
@@ -200,6 +209,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     /* Red/Black SOR-iteration */
     for (iter = 0; iter < itermax; iter++) {
         for (rb = 0; rb <= 1; rb++) {
+			//#pragma omp parallel for schedule(static) private(i,j, beta_mod)
             for (i = 1; i <= imax; i++) {
                 for (j = 1; j <= jmax; j++) {
                     if ((i+j+iStartPos) % 2 != rb) { continue; }
@@ -253,6 +263,8 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		
         /* Partial computation of residual */
         *res = 0.0;
+		float sum = 0.0;
+		//#pragma omp parallel for schedule(static) private(i,j, add) reduction(+:sum) 
         for (i = 1; i <= imax; i++) {
             for (j = 1; j <= jmax; j++) {
                 if (flag[i][j] & C_F) {
@@ -261,13 +273,13 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
                         eps_W*(p[i][j]-p[i-1][j])) * rdx2  +
                         (eps_N*(p[i][j+1]-p[i][j]) -
                         eps_S*(p[i][j]-p[i][j-1])) * rdy2  -  rhs[i][j];
-                    *res += add*add;
+                    sum += add*add;
                 }
             }
         }
 		
 		float resTot = 0.0;
-		MPI_Reduce(res, &resTot, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&sum, &resTot, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 		
 		if (rank == 0) {
 			*res = resTot;
@@ -301,7 +313,8 @@ void update_velocity(float **u, float **v, float **f, float **g, float **p,
 {
     int i, j;
 
-    for (i=1; i<=imax; i++) {
+    //#pragma omp parallel for schedule(static) private(i,j)
+	for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax; j++) {
 			// In the case of the last column, we don't perform this action
 			if (rank == size - 1 && i == imax) continue;
@@ -311,7 +324,8 @@ void update_velocity(float **u, float **v, float **f, float **g, float **p,
             }
         }
     }
-    for (i=1; i<=imax; i++) {
+    //#pragma omp parallel for schedule(static) private(i,j)
+	for (i=1; i<=imax; i++) {
         for (j=1; j<=jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -338,7 +352,9 @@ void set_timestep_interval(float *del_t, int imax, int jmax, float delx,
         vmax = 1.0e-10; 
 		float temp;
 		// Need to MPI Reduce the umax and vmax values
-        for (i=0; i<=imax+1; i++) {
+		// Can OMP parallelise this reduction
+        //#pragma omp parallel for schedule(static) private(i,j) reduction(max:umax)
+		for (i=0; i<=imax+1; i++) {
             for (j=1; j<=jmax+1; j++) {
                 umax = max(fabs(u[i][j]), umax);
             }
@@ -347,6 +363,8 @@ void set_timestep_interval(float *del_t, int imax, int jmax, float delx,
 		MPI_Reduce(&umax, &temp, 1, MPI_FLOAT, MPI_MAX, 0, MPI_COMM_WORLD);
 		if (rank == 0) umax = temp;
         
+		// Can OMP parallelise this reduction
+		//#pragma omp parallel for schedule(static) private(i,j) reduction(max:vmax)
 		for (i=1; i<=imax+1; i++) {
             for (j=0; j<=jmax+1; j++) {
                 vmax = max(fabs(v[i][j]), vmax);
