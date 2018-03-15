@@ -167,7 +167,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 	
     /* Calculate sum of squares */
     // Can double up on the parallelised reductions
-	//#pragma omp parallel for schedule(static) private(i,j) reduction(+:p0)
+	#pragma omp parallel for schedule(static) private(i,j) reduction(+:p0)
 	for (i = 1; i <= imax; i++) {
         for (j=1; j<=jmax; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j]*p[i][j]; }
