@@ -209,7 +209,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
     /* Red/Black SOR-iteration */
     for (iter = 0; iter < itermax; iter++) {
         for (rb = 0; rb <= 1; rb++) {
-			//#pragma omp parallel for schedule(static) private(i,j, beta_mod)
+			#pragma omp parallel for schedule(static) private(i,j, beta_mod)
             for (i = 1; i <= imax; i++) {
                 for (j = 1; j <= jmax; j++) {
                     if ((i+j+iStartPos) % 2 != rb) { continue; }
@@ -264,7 +264,7 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
         /* Partial computation of residual */
         *res = 0.0;
 		float sum = 0.0;
-		//#pragma omp parallel for schedule(static) private(i,j, add) reduction(+:sum) 
+		#pragma omp parallel for schedule(static) private(i,j, add) reduction(+:sum) 
         for (i = 1; i <= imax; i++) {
             for (j = 1; j <= jmax; j++) {
                 if (flag[i][j] & C_F) {
@@ -352,8 +352,8 @@ void set_timestep_interval(float *del_t, int imax, int jmax, float delx,
         vmax = 1.0e-10; 
 		float temp;
 		// Need to MPI Reduce the umax and vmax values
-		// Can OMP parallelise this reduction
-        //#pragma omp parallel for schedule(static) private(i,j) reduction(max:umax)
+		// Can also OMP parallelize this reduction
+        #pragma omp parallel for schedule(static) private(i,j) reduction(max:umax)
 		for (i=0; i<=imax+1; i++) {
             for (j=1; j<=jmax+1; j++) {
                 umax = max(fabs(u[i][j]), umax);
@@ -363,8 +363,8 @@ void set_timestep_interval(float *del_t, int imax, int jmax, float delx,
 		MPI_Reduce(&umax, &temp, 1, MPI_FLOAT, MPI_MAX, 0, MPI_COMM_WORLD);
 		if (rank == 0) umax = temp;
         
-		// Can OMP parallelise this reduction
-		//#pragma omp parallel for schedule(static) private(i,j) reduction(max:vmax)
+		// Can OMP parallelize this reduction
+		#pragma omp parallel for schedule(static) private(i,j) reduction(max:vmax)
 		for (i=1; i<=imax+1; i++) {
             for (j=0; j<=jmax+1; j++) {
                 vmax = max(fabs(v[i][j]), vmax);
