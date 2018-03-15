@@ -1,0 +1,18 @@
+#!/bin/bash
+#MSUB -q cs402
+#MSUB -l nodes=8:ppn=8
+#MSUB -l pmem=1024
+#MSUB -l walltime=00:04:00
+
+MPI_NODES=8
+while [  $MPI_NODES -gt 0 ]; do
+MY_NUM_THREADS=2
+while [  $MY_NUM_THREADS -lt 9 ]; do
+export OMP_NUM_THREADS=$MY_NUM_THREADS
+srun -n $MPI_NODES -c $MY_NUM_THREADS ./karman -i test/initial.bin -o out.bin
+MY_NUM_THREADS=$(($MY_NUM_THREADS*2))
+echo "" # Leave a space between each execution
+done
+MPI_NODES=$(($MPI_NODES-1))
+done
+

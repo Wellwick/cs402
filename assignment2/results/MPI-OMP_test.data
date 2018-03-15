@@ -1,0 +1,308 @@
+srun: Warning: can't run 1 processes on 8 nodes, setting nnodes to 1
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 1 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000081
+Average time for compute_tentative_velocity : 0.002720
+Average time for compute_rhs                : 0.000270
+Average time for poisson                    : 0.065635
+Average time for update_velocity            : 0.000253
+Average time for apply_boundary_conditions  : 0.000077
+Root node has written the file
+Running time                                : 14.024450
+
+srun: Warning: can't run 1 processes on 8 nodes, setting nnodes to 1
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 1 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000047
+Average time for compute_tentative_velocity : 0.001505
+Average time for compute_rhs                : 0.000150
+Average time for poisson                    : 0.036539
+Average time for update_velocity            : 0.000142
+Average time for apply_boundary_conditions  : 0.000089
+Root node has written the file
+Running time                                : 7.826569
+
+srun: Warning: can't run 1 processes on 8 nodes, setting nnodes to 1
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 1 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000031
+Average time for compute_tentative_velocity : 0.000847
+Average time for compute_rhs                : 0.000085
+Average time for poisson                    : 0.021070
+Average time for update_velocity            : 0.000082
+Average time for apply_boundary_conditions  : 0.000103
+Root node has written the file
+Running time                                : 4.515217
+
+srun: Warning: can't run 1 processes on 8 nodes, setting nnodes to 1
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 2 processes on 8 nodes, setting nnodes to 2
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 2 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000049
+Average time for compute_tentative_velocity : 0.001410
+Average time for compute_rhs                : 0.000140
+Average time for poisson                    : 0.034982
+Average time for update_velocity            : 0.000132
+Average time for apply_boundary_conditions  : 0.000082
+Root node has written the file
+Running time                                : 7.480648
+
+srun: Warning: can't run 2 processes on 8 nodes, setting nnodes to 2
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 2 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000049
+Average time for compute_tentative_velocity : 0.000778
+Average time for compute_rhs                : 0.000077
+Average time for poisson                    : 0.019603
+Average time for update_velocity            : 0.000074
+Average time for apply_boundary_conditions  : 0.000091
+Root node has written the file
+Running time                                : 4.207660
+
+srun: Warning: can't run 2 processes on 8 nodes, setting nnodes to 2
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 2 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000084
+Average time for compute_tentative_velocity : 0.000474
+Average time for compute_rhs                : 0.000044
+Average time for poisson                    : 0.012078
+Average time for update_velocity            : 0.000044
+Average time for apply_boundary_conditions  : 0.000118
+Root node has written the file
+Running time                                : 2.614130
+
+srun: Warning: can't run 2 processes on 8 nodes, setting nnodes to 2
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 3 processes on 8 nodes, setting nnodes to 3
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 3 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000045
+Average time for compute_tentative_velocity : 0.000795
+Average time for compute_rhs                : 0.000092
+Average time for poisson                    : 0.024081
+Average time for update_velocity            : 0.000087
+Average time for apply_boundary_conditions  : 0.000084
+Root node has written the file
+Running time                                : 5.127752
+
+srun: Warning: can't run 3 processes on 8 nodes, setting nnodes to 3
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 3 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000190
+Average time for compute_tentative_velocity : 0.000549
+Average time for compute_rhs                : 0.000054
+Average time for poisson                    : 0.024231
+Average time for update_velocity            : 0.000051
+Average time for apply_boundary_conditions  : 0.000192
+Root node has written the file
+Running time                                : 5.149904
+
+srun: Warning: can't run 3 processes on 8 nodes, setting nnodes to 3
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 3 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.002776
+Average time for compute_tentative_velocity : 0.001418
+Average time for compute_rhs                : 0.000043
+Average time for poisson                    : 0.177465
+Average time for update_velocity            : 0.000036
+Average time for apply_boundary_conditions  : 0.002237
+Root node has written the file
+Running time                                : 37.361279
+
+srun: Warning: can't run 3 processes on 8 nodes, setting nnodes to 3
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 4 processes on 8 nodes, setting nnodes to 4
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 4 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000041
+Average time for compute_tentative_velocity : 0.000598
+Average time for compute_rhs                : 0.000069
+Average time for poisson                    : 0.018821
+Average time for update_velocity            : 0.000065
+Average time for apply_boundary_conditions  : 0.000088
+Root node has written the file
+Running time                                : 4.007418
+
+srun: Warning: can't run 4 processes on 8 nodes, setting nnodes to 4
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 4 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000067
+Average time for compute_tentative_velocity : 0.000338
+Average time for compute_rhs                : 0.000040
+Average time for poisson                    : 0.011272
+Average time for update_velocity            : 0.000038
+Average time for apply_boundary_conditions  : 0.000097
+Root node has written the file
+Running time                                : 2.418084
+
+srun: Warning: can't run 4 processes on 8 nodes, setting nnodes to 4
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 4 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000072
+Average time for compute_tentative_velocity : 0.000229
+Average time for compute_rhs                : 0.000024
+Average time for poisson                    : 0.007598
+Average time for update_velocity            : 0.000024
+Average time for apply_boundary_conditions  : 0.000111
+Root node has written the file
+Running time                                : 1.648165
+
+srun: Warning: can't run 4 processes on 8 nodes, setting nnodes to 4
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 5 processes on 8 nodes, setting nnodes to 5
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 5 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000041
+Average time for compute_tentative_velocity : 0.000479
+Average time for compute_rhs                : 0.000055
+Average time for poisson                    : 0.015817
+Average time for update_velocity            : 0.000052
+Average time for apply_boundary_conditions  : 0.000093
+Root node has written the file
+Running time                                : 3.370374
+
+srun: Warning: can't run 5 processes on 8 nodes, setting nnodes to 5
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 5 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000066
+Average time for compute_tentative_velocity : 0.000271
+Average time for compute_rhs                : 0.000032
+Average time for poisson                    : 0.009722
+Average time for update_velocity            : 0.000031
+Average time for apply_boundary_conditions  : 0.000100
+Root node has written the file
+Running time                                : 2.087483
+
+srun: Warning: can't run 5 processes on 8 nodes, setting nnodes to 5
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 5 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000093
+Average time for compute_tentative_velocity : 0.000190
+Average time for compute_rhs                : 0.000020
+Average time for poisson                    : 0.006948
+Average time for update_velocity            : 0.000020
+Average time for apply_boundary_conditions  : 0.000113
+Root node has written the file
+Running time                                : 1.512155
+
+srun: Warning: can't run 5 processes on 8 nodes, setting nnodes to 5
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 6 processes on 8 nodes, setting nnodes to 6
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 6 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000042
+Average time for compute_tentative_velocity : 0.000403
+Average time for compute_rhs                : 0.000046
+Average time for poisson                    : 0.013771
+Average time for update_velocity            : 0.000044
+Average time for apply_boundary_conditions  : 0.000096
+Root node has written the file
+Running time                                : 2.943189
+
+srun: Warning: can't run 6 processes on 8 nodes, setting nnodes to 6
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 6 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000071
+Average time for compute_tentative_velocity : 0.000233
+Average time for compute_rhs                : 0.000028
+Average time for poisson                    : 0.008792
+Average time for update_velocity            : 0.000027
+Average time for apply_boundary_conditions  : 0.000104
+Root node has written the file
+Running time                                : 1.891948
+
+srun: Warning: can't run 6 processes on 8 nodes, setting nnodes to 6
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 6 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000127
+Average time for compute_tentative_velocity : 0.000134
+Average time for compute_rhs                : 0.000016
+Average time for poisson                    : 0.006398
+Average time for update_velocity            : 0.000017
+Average time for apply_boundary_conditions  : 0.000118
+Root node has written the file
+Running time                                : 1.397708
+
+srun: Warning: can't run 6 processes on 8 nodes, setting nnodes to 6
+srun: error: Unable to create job step: More processors requested than permitted
+
+srun: Warning: can't run 7 processes on 8 nodes, setting nnodes to 7
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 7 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000041
+Average time for compute_tentative_velocity : 0.000346
+Average time for compute_rhs                : 0.000040
+Average time for poisson                    : 0.012483
+Average time for update_velocity            : 0.000038
+Average time for apply_boundary_conditions  : 0.000099
+Root node has written the file
+Running time                                : 2.662858
+
+srun: Warning: can't run 7 processes on 8 nodes, setting nnodes to 7
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 7 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000065
+Average time for compute_tentative_velocity : 0.000227
+Average time for compute_rhs                : 0.000024
+Average time for poisson                    : 0.008074
+Average time for update_velocity            : 0.000024
+Average time for apply_boundary_conditions  : 0.000109
+Root node has written the file
+Running time                                : 1.744915
+
+srun: Warning: can't run 7 processes on 8 nodes, setting nnodes to 7
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 7 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.000120
+Average time for compute_tentative_velocity : 0.000166
+Average time for compute_rhs                : 0.000014
+Average time for poisson                    : 0.006156
+Average time for update_velocity            : 0.000016
+Average time for apply_boundary_conditions  : 0.000119
+Root node has written the file
+Running time                                : 1.351706
+
+srun: Warning: can't run 7 processes on 8 nodes, setting nnodes to 7
+srun: error: Unable to create job step: More processors requested than permitted
+
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 8 MPI nodes and 2 threads
+Average time for set_timestep_interval      : 0.000041
+Average time for compute_tentative_velocity : 0.000319
+Average time for compute_rhs                : 0.000037
+Average time for poisson                    : 0.011411
+Average time for update_velocity            : 0.000036
+Average time for apply_boundary_conditions  : 0.000103
+Root node has written the file
+Running time                                : 2.440368
+
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 8 MPI nodes and 4 threads
+Average time for set_timestep_interval      : 0.000067
+Average time for compute_tentative_velocity : 0.000216
+Average time for compute_rhs                : 0.000022
+Average time for poisson                    : 0.007629
+Average time for update_velocity            : 0.000022
+Average time for apply_boundary_conditions  : 0.000112
+Root node has written the file
+Running time                                : 1.653040
+
+Root node has sent confirmation to all nodes
+Program took 203 iterations across 8 MPI nodes and 8 threads
+Average time for set_timestep_interval      : 0.001473
+Average time for compute_tentative_velocity : 0.000687
+Average time for compute_rhs                : 0.000019
+Average time for poisson                    : 0.088528
+Average time for update_velocity            : 0.000025
+Average time for apply_boundary_conditions  : 0.001186
+Root node has written the file
+Running time                                : 18.677696
+
+srun: error: Unable to create job step: Job/step already completing or completed
+

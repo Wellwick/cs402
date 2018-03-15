@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 				}
 			}
 			// Send the four necessary arrays
-			printf("Root is now sending arrays to node %d\n",node);
+			//printf("Root is now sending arrays to node %d\n",node);
 			// Can not parallelize this with OMP because the positions can't be guaranteed
 			for (i=0; i <= imaxNode+1; i++) {
 				MPI_Send(uNode[i], jmax+2, MPI_FLOAT, node, tag, MPI_COMM_WORLD);
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
-	printf("Node %d has completed the handshake and is ready to start processing\n",rank);
+	//printf("Node %d has completed the handshake and is ready to start processing\n",rank);
 
 	int imaxLocal;
 	// Make use of a local variable for the width of the calculated area
@@ -461,14 +461,14 @@ int main(int argc, char *argv[])
 		if (rank == 0) {
 			tempTimer = MPI_Wtime() - tempTimer;
 			boundaryTimer += tempTimer;
-			printf("Have completed round %d with a t value of %f and t_end value of %f\n",iters, t, t_end);
+			//printf("Have completed round %d with a t value of %f and t_end value of %f\n",iters, t, t_end);
 		}
 	} /* End of main loop */
 	
 	MPI_Barrier(MPI_COMM_WORLD);
 	
 	if (rank == 0) {
-		printf("Program took %d iterations across %d MPI nodes\n", iters, size);
+		printf("Program took %d iterations across %d MPI nodes and %d threads\n", iters, size, omp_get_max_threads());
 		// Let's display some running time information
 		printf("Average time for set_timestep_interval      : %f\n", intervalTimer / (double)iters);
 		printf("Average time for compute_tentative_velocity : %f\n", tentVelTimer / (double)iters);

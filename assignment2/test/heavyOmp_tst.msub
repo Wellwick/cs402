@@ -1,0 +1,11 @@
+#!/bin/bash
+#MSUB -q cs402
+#MSUB -l nodes=4:ppn=16
+#MSUB -l pmem=1024
+#MSUB -l walltime=00:02:00
+
+MY_NUM_THREADS=$SLURM_NTASKS_PER_NODE
+
+export OMP_NUM_THREADS=$MY_NUM_THREADS
+
+srun -n 4 -c $MY_NUM_THREADS ./karman -i test/initial.bin -o omp.bin
