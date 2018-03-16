@@ -263,6 +263,8 @@ int poisson(float **p, float **rhs, char **flag, int imax, int jmax,
 		
         /* Partial computation of residual */
         *res = 0.0;
+		// Have to make use of sum variable in order to parallelize for OMP
+		// since reductions don't work for pointers
 		float sum = 0.0;
 		#pragma omp parallel for schedule(static) private(i,j, add) reduction(+:sum) 
         for (i = 1; i <= imax; i++) {
